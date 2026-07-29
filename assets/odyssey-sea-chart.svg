@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="780" height="1080" viewBox="0 0 780 1080">
+  <defs>
+    <linearGradient id="paper" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e7dfcf"/>
+      <stop offset="1" stop-color="#f4efe4"/>
+    </linearGradient>
+    <pattern id="grid" width="52" height="52" patternUnits="userSpaceOnUse">
+      <path d="M52 0H0V52" fill="none" stroke="#5c746f" stroke-opacity=".09" stroke-width="1"/>
+      <circle cx="0" cy="0" r="1.5" fill="#997548" fill-opacity=".18"/>
+    </pattern>
+  </defs>
+  <rect width="780" height="1080" fill="url(#paper)"/>
+  <rect width="780" height="1080" fill="url(#grid)"/>
+  <g fill="none" stroke="#315a62" stroke-opacity=".11">
+    <path d="M-80 190C90 50 220 310 390 170S680 60 850 205" stroke-width="22"/>
+    <path d="M-90 760C80 610 255 850 420 700S690 640 850 790" stroke-width="16"/>
+    <path d="M72 20C210 165 128 310 274 420S485 620 416 790 498 1010 720 1072" stroke-width="2" stroke-dasharray="8 13"/>
+  </g>
+  <g transform="translate(650 170)" fill="none" stroke="#9a7341" stroke-opacity=".18">
+    <circle r="68" stroke-width="2"/>
+    <circle r="48"/>
+    <path d="M0-78V78M-78 0H78M-55-55 55 55M55-55-55 55"/>
+    <path d="M0-61 10-12 0 0-10-12Z" fill="#9a7341" fill-opacity=".13"/>
+  </g>
+  <g fill="#173d47" fill-opacity=".09">
+    <path d="M91 394c36-43 89-59 135-34 19 10 42 10 58 29-28 19-57 34-82 62-35-10-76-19-111-57Z"/>
+    <path d="M510 862c31-36 76-40 111-16 21 14 39 10 58 28-31 27-66 32-101 58-23-19-51-35-68-70Z"/>
+  </g>
+</svg>
