@@ -4305,7 +4305,7 @@ window.LIMUStorageScope = {
 
 function loadGSI() { return Promise.resolve(); }
 async function gSignIn() {
-  _writeLog('step', 'gSignIn start (Firebase popup)');
+  _writeLog('step', 'gSignIn start');
 
   if (typeof firebase === 'undefined' || !firebase.auth) {
     throw new Error('Firebase 未載入，請確認網路連線');
@@ -4313,15 +4313,33 @@ async function gSignIn() {
 
   var provider = new firebase.auth.GoogleAuthProvider();
 
+  // v20.16.1：iOS「加入主畫面」的 standalone 模式下，window.open 會被導到另一個
+  // Safari context，popup 與 opener 之間的 postMessage 完全斷掉，signInWithPopup
+  // 不是無聲卡死就是丟出各種錯誤碼。舊版只在 auth/popup-blocked 時才退回 redirect，
+  // 等於在最需要備援的環境反而沒有備援。這裡直接判斷 standalone 走 redirect。
+  var isStandalone = false;
   try {
-    // Popup 方式：iOS Safari 相容，不依賴 redirect cookie
+    isStandalone = window.navigator.standalone === true ||
+      (window.matchMedia && window.matchMedia('(display-mode:standalone)').matches);
+  } catch(e) {}
+
+  if (isStandalone) {
+    _writeLog('step', 'standalone PWA → signInWithRedirect');
+    // 記下「正在等待 redirect 回來」，回程時用來判斷是否需要顯示錯誤。
+    try { sessionStorage.setItem('hw5ren:pendingRedirect', String(Date.now())); } catch(e) {}
+    return firebase.auth().signInWithRedirect(provider);
+  }
+
+  try {
     var result = await firebase.auth().signInWithPopup(provider);
     _writeLog('step', 'popup login ok: ' + (result.user && result.user.email));
     return result;
   } catch(e) {
-    // popup 被封鎖時備援 redirect
-    if (e.code === 'auth/popup-blocked') {
-      _writeLog('step', 'popup blocked, fallback to redirect');
+    // popup 被封鎖或環境不支援時備援 redirect
+    var fallbackCodes = ['auth/popup-blocked','auth/operation-not-supported-in-this-environment','auth/web-storage-unsupported'];
+    if (e && fallbackCodes.indexOf(e.code) >= 0) {
+      _writeLog('step', 'popup unavailable (' + e.code + ') → signInWithRedirect');
+      try { sessionStorage.setItem('hw5ren:pendingRedirect', String(Date.now())); } catch(ex) {}
       return firebase.auth().signInWithRedirect(provider);
     }
     throw e;
@@ -4492,10 +4510,10 @@ const WEEKDAYS = ["日", "一", "二", "三", "四", "五", "六"];
 const COUNSEL_PERIODS = ["早自習", "第1節", "第2節", "第3節", "第4節", "午休", "第5節", "第6節", "放學後"];
 const COUNSEL_TYPES = ["學習", "行為", "情緒", "人際", "家庭", "其他"];
 const COUNSEL_FOLLOWUP = ["需追蹤", "已處理", "轉介"];
-const APP_VERSION = "20.16.0";
+const APP_VERSION = "20.17.0";
 const APP_BUILD_DATE = "2026-07-30";
-const APP_BUILD_ID = "limu-teacher-v20-16-20260730";
-const APP_CACHE_NAME = "hw-tracker-v20-16";
+const APP_BUILD_ID = "limu-teacher-v20-17-20260730";
+const APP_CACHE_NAME = "hw-tracker-v20-17";
 window.__LIMU_BUILD__ = Object.freeze({
     appVersion: APP_VERSION,
     buildDate: APP_BUILD_DATE,
@@ -9321,6 +9339,10 @@ function App() {
             return false;
         }
         if (result && result.changed) {
+            // v20.16.1：標記「即將 reload」，讓 auth 回呼的 finally 不要在這個空檔
+            // 把 authLoading 解鎖。否則 React 會先渲染出登入頁，reload 生效前的
+            // 空檔在 PWA 裡看得很清楚，使用者會以為「選完帳號又被踢回登入頁」。
+            window.__LIMU_RELOADING__ = true;
             window.location.reload();
             return false;
         }
@@ -9381,7 +9403,35 @@ function App() {
             setAuthLoading(false);
             return;
         }
-        // 監聽登入狀態（popup 模式不需要 getRedirectResult）
+        // v20.16.1：補上 getRedirectResult。舊版註解寫「popup 模式不需要」，但
+        // gSignIn 在 popup 不可用時會退回 signInWithRedirect（iPhone 主畫面 PWA
+        // 必定走這條），回程卻沒有任何人接手，使用者選完帳號就被丟回登入頁。
+        try {
+          var pendingRedirect = null;
+          try { pendingRedirect = sessionStorage.getItem('hw5ren:pendingRedirect'); } catch(eSess) {}
+          firebase.auth().getRedirectResult().then(function(result) {
+            try { sessionStorage.removeItem('hw5ren:pendingRedirect'); } catch(eSess) {}
+            if (result && result.user) {
+              _writeLog('step', 'redirect login ok: ' + result.user.email);
+              // 後續交給 onAuthStateChanged 處理，這裡不重複設定狀態。
+            } else if (pendingRedirect) {
+              // 有等待中的 redirect 卻沒拿到 user：多半是 Safari 的跨網域儲存
+              // 分割擋掉了 firebaseapp.com 的 auth handler。
+              _writeLog('error', 'redirect returned without user');
+              showError('Google 登入未能完成。\n\n' +
+                '若此裝置為 iPhone 主畫面捷徑，請改用 Safari 直接開啟網址登入一次，' +
+                '或請管理者在 Firebase 設定自訂 authDomain。', '#1a1a0a');
+            }
+          }).catch(function(err) {
+            try { sessionStorage.removeItem('hw5ren:pendingRedirect'); } catch(eSess) {}
+            var code = (err && err.code) || '';
+            if (['auth/popup-closed-by-user','auth/cancelled-popup-request','auth/no-auth-event'].indexOf(code) >= 0) return;
+            _writeLog('error', 'getRedirectResult: ' + code + ' ' + (err && err.message || ''));
+            showError('Google 登入失敗（' + (code || 'redirect') + '）\n\n' + (err && err.message || String(err)), '#1a1a0a');
+          });
+        } catch(eRedirect) {}
+
+        // 監聽登入狀態
         var _authTimer = setTimeout(function() {
             setAuthLoading(false);
             try { window._writeLog && window._writeLog('step', 'Firebase auth timeout'); } catch(e) {}
@@ -9420,6 +9470,7 @@ function App() {
                 if (!keepLocal) {
                     var clearedScope = window.LIMUStorageScope.clearUid();
                     if (clearedScope && clearedScope.changed) {
+                        window.__LIMU_RELOADING__ = true;
                         window.location.reload();
                         return;
                     }
@@ -9432,7 +9483,9 @@ function App() {
         }
 
     } finally {
-        setAuthLoading(false);
+        // 只有「不是正要 reload」時才解鎖。P0 的保證仍然成立：
+        // 錯誤路徑（activateStorageOwner 拋錯）不會設這個旗標，一樣會解鎖。
+        if (!window.__LIMU_RELOADING__) setAuthLoading(false);
     }
 });
         return function() {
@@ -12041,7 +12094,9 @@ function App() {
                         // 以下錯誤都是正常情況，靜默處理
                         var silent = ['auth/popup-closed-by-user','auth/cancelled-popup-request'];
                         if (silent.indexOf(err.code) !== -1) return;
-                        var em = err.message || String(err);
+                        // v20.16.1：帶上 err.code。舊版只顯示 message，
+                        // 但真正能定位問題的是錯誤碼（unauthorized-domain 等）。
+                        var em = (err.code ? '[' + err.code + ']\n' : '') + (err.message || String(err));
                         showError('Google 登入失敗\n\n' + em, '#1a1a0a');
                     });
                 }, style: { display: "flex", alignItems: "center", gap: 12, background: isNerv ? "rgba(255,102,0,.1)" : "#fff", color: isNerv ? "#ff6600" : "#1e3a5f", border: isNerv ? "1px solid #ff6600" : "none", borderRadius: isNerv ? 2 : 50, padding: "16px 32px", fontSize: 16, fontWeight: 700, cursor: "pointer", boxShadow: isNerv ? "0 0 20px rgba(255,102,0,.3)" : "0 8px 24px rgba(0,0,0,.2)", fontFamily: isNerv ? "Share Tech Mono,monospace" : "inherit", letterSpacing: isNerv ? 2 : 0 } },
@@ -15297,8 +15352,8 @@ function App() {
   var updateRegistration = null;
   var reloadingForUpdate = false;
   var updateActivationRequested = false;
-  var SW_BUILD_ID = 'limu-teacher-v20-16-20260730';
-  var SW_CACHE_NAME = 'hw-tracker-v20-16';
+  var SW_BUILD_ID = 'limu-teacher-v20-17-20260730';
+  var SW_CACHE_NAME = 'hw-tracker-v20-17';
   var SW_URL = './sw.js?build=' + encodeURIComponent(SW_BUILD_ID);
   var lastUpdateCheck = 0;
   // v20.16：checkBuildConsistency 本來就有 15 秒節流，但 reg.update() 沒有。
