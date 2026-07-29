@@ -1,0 +1,33 @@
+{
+  "name": "LIMU 教師專用小工具",
+  "short_name": "LIMU",
+  "description": "作業、出勤、輔導紀錄與學年封存工具",
+  "lang": "zh-TW",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#080b10",
+  "theme_color": "#0a2731",
+  "icons": [
+    {
+      "src": "./app-icon-192-v20-15.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./app-icon-512-v20-15.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "今天紀錄",
+      "short_name": "今天",
+      "url": "./index.html"
+    }
+  ]
+}

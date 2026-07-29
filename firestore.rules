@@ -1,0 +1,24 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedInAs(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    // App 的設定、每日資料、週計畫與輔導紀錄全部位於使用者自己的節點。
+    match /users/{userId}/{document=**} {
+      allow read, write: if signedInAs(userId);
+    }
+
+    // 本 App 只讀取自己的獎卡資料；寫入應由獎卡系統或後端管理。
+    match /vc-card-users/{userId} {
+      allow read: if signedInAs(userId);
+      allow write: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
