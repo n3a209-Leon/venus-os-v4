@@ -108,10 +108,10 @@ function testUpdateDraftSafety() {
   await testEncryptedBackupRoundTrip();
   testUpdateDraftSafety();
   if (failures.length) {
-    console.error('LIMU v20.15 logic QA failed:\n- ' + failures.join('\n- '));
+    console.error('LIMU v20.16 logic QA failed:\n- ' + failures.join('\n- '));
     process.exit(1);
   }
-  console.log('LIMU v20.15 logic QA passed (12 checks).');
+  console.log('LIMU v20.16 logic QA passed (12 checks).');
 })().catch(error => {
   console.error(error);
   process.exit(1);

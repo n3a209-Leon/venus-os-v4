@@ -36,8 +36,8 @@ check('備份不再用 prompt', !/prompt\('請設定至少 8 個字元的備份�
 check('移除全班分析', !html.includes('copyClassAnalysis') && !html.includes('複製全班素材'));
 check('奧德賽主題', html.includes("id: 'odyssey'") && html.includes('odyssey-sea-chart.svg'));
 check('Manifest 不再混用 SVG 圖示', manifest.icons.every(icon => icon.type === 'image/png'));
-check('VENUS 版本化圖示', manifest.icons.every(icon => /v20-15\.png$/.test(icon.src)));
-check('Apple Touch Icon 為新版 PNG', html.includes('apple-touch-icon-v20-15.png'));
+check('VENUS 版本化圖示', manifest.icons.every(icon => /v20-16\.png$/.test(icon.src)));
+check('Apple Touch Icon 為新版 PNG', html.includes('apple-touch-icon-v20-16.png'));
 check('全螢幕開場素材', html.includes('./assets/splash-art.jpg') && html.includes('ODYSSEY TEACHER SYSTEM'));
 check('開場可略過並支援減少動態', html.includes('輕觸進入') && html.includes('prefers-reduced-motion:reduce'));
 check('開場長短版狀態固定', html.includes('isFirstRef.current'));
@@ -75,8 +75,8 @@ scripts.forEach((code, index) => {
 });
 
 if (failures.length) {
-  console.error('LIMU v20.15 QA failed:\n- ' + failures.join('\n- '));
+  console.error('LIMU v20.16 QA failed:\n- ' + failures.join('\n- '));
   process.exit(1);
 }
 
-console.log('LIMU v20.15 QA passed (' + (25 + assetRefs.length + manifest.icons.length + scripts.length) + ' checks).');
+console.log('LIMU v20.16 QA passed (' + (25 + assetRefs.length + manifest.icons.length + scripts.length) + ' checks).');
