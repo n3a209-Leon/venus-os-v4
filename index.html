@@ -4304,14 +4304,17 @@ window.LIMUStorageScope = {
 // getDriveFilename 已移除
 
 function loadGSI() { return Promise.resolve(); }
-async function gSignIn() {
-  _writeLog('step', 'gSignIn start');
+async function gSignIn(customParams) {
+  _writeLog('step', 'gSignIn start' + (customParams ? ' (' + JSON.stringify(customParams) + ')' : ''));
 
   if (typeof firebase === 'undefined' || !firebase.auth) {
     throw new Error('Firebase 未載入，請確認網路連線');
   }
 
   var provider = new firebase.auth.GoogleAuthProvider();
+  if (customParams) {
+    try { provider.setCustomParameters(customParams); } catch(e) {}
+  }
 
   // v20.16.1：iOS「加入主畫面」的 standalone 模式下，window.open 會被導到另一個
   // Safari context，popup 與 opener 之間的 postMessage 完全斷掉，signInWithPopup
@@ -4510,10 +4513,10 @@ const WEEKDAYS = ["日", "一", "二", "三", "四", "五", "六"];
 const COUNSEL_PERIODS = ["早自習", "第1節", "第2節", "第3節", "第4節", "午休", "第5節", "第6節", "放學後"];
 const COUNSEL_TYPES = ["學習", "行為", "情緒", "人際", "家庭", "其他"];
 const COUNSEL_FOLLOWUP = ["需追蹤", "已處理", "轉介"];
-const APP_VERSION = "20.17.0";
+const APP_VERSION = "20.18.0";
 const APP_BUILD_DATE = "2026-07-30";
-const APP_BUILD_ID = "limu-teacher-v20-17-20260730";
-const APP_CACHE_NAME = "hw-tracker-v20-17";
+const APP_BUILD_ID = "limu-teacher-v20-18-20260730";
+const APP_CACHE_NAME = "hw-tracker-v20-18";
 window.__LIMU_BUILD__ = Object.freeze({
     appVersion: APP_VERSION,
     buildDate: APP_BUILD_DATE,
@@ -9372,20 +9375,26 @@ function App() {
     async function switchGoogleAccount() {
         if (!window.confirm('目前資料會保留在「' + (userEmail || '目前帳號') + '」的專屬分區，不會帶到另一個帳號。確定切換？')) return;
         try {
+            // v20.18：改走 gSignIn，iPhone 主畫面 PWA 才會套用 redirect 路徑。
+            // 舊版直接呼叫 signInWithPopup，完全繞過 gSignIn 的環境判斷，
+            // 在 iOS standalone 下必定失效（常是無聲卡死，連 catch 都不會進）。
+            //
+            // 同時移除「先 signOut 再登入」。prompt:'select_account' 本來就會
+            // 強制跳出帳號選擇畫面，不需要先登出；先登出反而會在登入失敗或
+            // 使用者中途取消時，把人留在「已登出且分區已清空」的狀態。
+            // 現在若取消或失敗，仍然停留在原帳號，資料不受影響。
             window.__LIMU_ACCOUNT_SWITCHING__ = true;
-            await firebase.auth().signOut();
-            if (window.LIMUStorageScope) window.LIMUStorageScope.clearUid();
-            var provider = new firebase.auth.GoogleAuthProvider();
-            provider.setCustomParameters({ prompt:'select_account' });
-            await firebase.auth().signInWithPopup(provider);
+            try { sessionStorage.setItem('hw5ren:switchingAccount', '1'); } catch(eSess) {}
+            await gSignIn({ prompt:'select_account' });
+            // standalone 走 redirect 時，上一行會直接導頁離開，不會執行到這裡。
+            // 桌機 popup 成功時交由 onAuthStateChanged 接手切換分區並 reload。
         } catch(e) {
             window.__LIMU_ACCOUNT_SWITCHING__ = false;
+            try { sessionStorage.removeItem('hw5ren:switchingAccount'); } catch(eSess) {}
             if (e && ['auth/popup-closed-by-user','auth/cancelled-popup-request'].indexOf(e.code) >= 0) {
-                window.location.reload();
-                return;
+                return; // 使用者自行取消：維持原帳號，不需要 reload
             }
-            alert('切換帳號失敗：' + String(e && e.message || e));
-            window.location.reload();
+            alert('切換帳號失敗：' + (e && e.code ? '[' + e.code + '] ' : '') + String(e && e.message || e));
         }
     }
 
@@ -9408,22 +9417,32 @@ function App() {
         // 必定走這條），回程卻沒有任何人接手，使用者選完帳號就被丟回登入頁。
         try {
           var pendingRedirect = null;
-          try { pendingRedirect = sessionStorage.getItem('hw5ren:pendingRedirect'); } catch(eSess) {}
+          var wasSwitching = false;
+          try {
+            pendingRedirect = sessionStorage.getItem('hw5ren:pendingRedirect');
+            wasSwitching = !!sessionStorage.getItem('hw5ren:switchingAccount');
+          } catch(eSess) {}
           firebase.auth().getRedirectResult().then(function(result) {
-            try { sessionStorage.removeItem('hw5ren:pendingRedirect'); } catch(eSess) {}
+            try {
+              sessionStorage.removeItem('hw5ren:pendingRedirect');
+              sessionStorage.removeItem('hw5ren:switchingAccount');
+            } catch(eSess) {}
             if (result && result.user) {
-              _writeLog('step', 'redirect login ok: ' + result.user.email);
+              _writeLog('step', (wasSwitching ? 'account switch' : 'redirect login') + ' ok: ' + result.user.email);
               // 後續交給 onAuthStateChanged 處理，這裡不重複設定狀態。
             } else if (pendingRedirect) {
               // 有等待中的 redirect 卻沒拿到 user：多半是 Safari 的跨網域儲存
               // 分割擋掉了 firebaseapp.com 的 auth handler。
               _writeLog('error', 'redirect returned without user');
-              showError('Google 登入未能完成。\n\n' +
+              showError((wasSwitching ? '切換帳號未能完成，仍停留在原帳號。' : 'Google 登入未能完成。') + '\n\n' +
                 '若此裝置為 iPhone 主畫面捷徑，請改用 Safari 直接開啟網址登入一次，' +
                 '或請管理者在 Firebase 設定自訂 authDomain。', '#1a1a0a');
             }
           }).catch(function(err) {
-            try { sessionStorage.removeItem('hw5ren:pendingRedirect'); } catch(eSess) {}
+            try {
+              sessionStorage.removeItem('hw5ren:pendingRedirect');
+              sessionStorage.removeItem('hw5ren:switchingAccount');
+            } catch(eSess) {}
             var code = (err && err.code) || '';
             if (['auth/popup-closed-by-user','auth/cancelled-popup-request','auth/no-auth-event'].indexOf(code) >= 0) return;
             _writeLog('error', 'getRedirectResult: ' + code + ' ' + (err && err.message || ''));
@@ -15352,8 +15371,8 @@ function App() {
   var updateRegistration = null;
   var reloadingForUpdate = false;
   var updateActivationRequested = false;
-  var SW_BUILD_ID = 'limu-teacher-v20-17-20260730';
-  var SW_CACHE_NAME = 'hw-tracker-v20-17';
+  var SW_BUILD_ID = 'limu-teacher-v20-18-20260730';
+  var SW_CACHE_NAME = 'hw-tracker-v20-18';
   var SW_URL = './sw.js?build=' + encodeURIComponent(SW_BUILD_ID);
   var lastUpdateCheck = 0;
   // v20.16：checkBuildConsistency 本來就有 15 秒節流，但 reg.update() 沒有。
