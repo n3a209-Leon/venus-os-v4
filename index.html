@@ -1766,8 +1766,11 @@
         .gr-center-box {
           width:100%; max-width:520px;
           background:var(--card-bg,#1a1e2e);
+          color:var(--card-fg,#e8e8f0);
           border-radius:16px 16px 0 0;
-          padding:18px 16px 32px;
+          /* v20.20：底部改吃安全區，否則 Home 指示條那一段不會被面板底色蓋住，
+             在 iPhone 上看起來就是一條黑帶。 */
+          padding:18px 16px calc(24px + var(--safe-bottom));
           max-height:90vh; overflow-y:auto;
           box-shadow:0 -4px 32px rgba(0,0,0,.5);
         }
@@ -1780,13 +1783,13 @@
         }
         .gr-tab {
           flex:1; padding:8px 4px; border-radius:8px; border:none;
-          background:rgba(255,255,255,.07); color:inherit;
+          background:var(--card-chip,rgba(255,255,255,.07)); color:inherit;
           font-size:12px; cursor:pointer; font-weight:600;
           letter-spacing:.5px;
           -webkit-tap-highlight-color:transparent;
         }
         .gr-tab.active {
-          background:rgba(156,39,176,.45);
+          background:var(--card-accent,rgba(156,39,176,.45));
         }
         [data-theme="nerv"] .gr-tab.active {
           background:rgba(0,200,80,.25); color:#00ff66;
@@ -1908,7 +1911,7 @@
         .gr-time-now-btn{padding:7px 12px;border-radius:8px;border:none;background:rgba(156,39,176,.35);color:#e0b8ff;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;-webkit-tap-highlight-color:transparent}
         .gr-time-now-btn:active{background:rgba(156,39,176,.55)}
         .gr-formal-overlay{position:fixed;inset:0;z-index:9800;background:rgba(0,0,0,.72);display:flex;align-items:flex-end;justify-content:center}
-        .gr-formal-box{width:100%;max-width:520px;background:var(--card-bg,#1a1e2e);border-radius:16px 16px 0 0;padding:18px 16px 32px;max-height:90vh;overflow-y:auto;box-shadow:0 -4px 32px rgba(0,0,0,.6);display:flex;flex-direction:column;gap:12px}
+        .gr-formal-box{width:100%;max-width:520px;background:var(--card-bg,#1a1e2e);border-radius:16px 16px 0 0;padding:18px 16px calc(24px + var(--safe-bottom));max-height:90vh;overflow-y:auto;box-shadow:0 -4px 32px rgba(0,0,0,.6);display:flex;flex-direction:column;gap:12px}
         .gr-formal-title{font-size:15px;font-weight:700;text-align:center;letter-spacing:1px}
         .gr-formal-content{background:rgba(255,255,255,.05);border-radius:10px;padding:14px;font-size:13px;line-height:1.9;white-space:pre-wrap;word-break:break-all;border:1px solid rgba(255,255,255,.08);max-height:52vh;overflow-y:auto;font-family:'Noto Sans TC',sans-serif}
         .gr-formal-loading{text-align:center;padding:32px 0;opacity:.6;font-size:13px}
@@ -3467,6 +3470,35 @@
           .app[data-theme="odyssey"]{background-size:auto,520px auto,auto}
           .app[data-theme="odyssey"] header::after{right:10px;letter-spacing:1.3px}
         }
+
+        /* v20.20：--card-bg 先前從未被定義，導致 .gr-center-box、.gr-dialog、
+           .gr-formal-box 等四處永遠落到寫死的 #1a1e2e 深藍，不隨主題變化。
+           在此補齊各主題的卡片色票。 */
+        .app[data-theme="default"]{
+          --card-bg:#ffffff; --card-fg:#1e3a5f;
+          --card-chip:rgba(30,58,95,.07); --card-accent:rgba(156,39,176,.22);
+          --card-line:rgba(0,0,0,.08);
+        }
+        .app[data-theme="mucha"]{
+          --card-bg:#f4ebdd; --card-fg:#39312c;
+          --card-chip:rgba(139,99,47,.12); --card-accent:rgba(139,99,47,.34);
+          --card-line:rgba(139,99,47,.20);
+        }
+        .app[data-theme="odyssey"]{
+          --card-bg:#f1eadc; --card-fg:#17333b;
+          --card-chip:rgba(23,51,59,.10); --card-accent:rgba(135,99,55,.34);
+          --card-line:rgba(23,51,59,.16);
+        }
+        .app[data-theme="nebula"]{
+          --card-bg:#0a0c20; --card-fg:#c8b0ff;
+          --card-chip:rgba(150,120,255,.12); --card-accent:rgba(150,120,255,.34);
+          --card-line:rgba(150,100,255,.18);
+        }
+        .app[data-theme="nerv"]{
+          --card-bg:#0a0f0a; --card-fg:#00cc55;
+          --card-chip:rgba(0,204,85,.10); --card-accent:rgba(0,204,85,.28);
+          --card-line:rgba(0,204,85,.22);
+        }
 </style>
 <script id="limu-external-art-map">
 (function(){
@@ -4545,10 +4577,10 @@ const WEEKDAYS = ["日", "一", "二", "三", "四", "五", "六"];
 const COUNSEL_PERIODS = ["早自習", "第1節", "第2節", "第3節", "第4節", "午休", "第5節", "第6節", "放學後"];
 const COUNSEL_TYPES = ["學習", "行為", "情緒", "人際", "家庭", "其他"];
 const COUNSEL_FOLLOWUP = ["需追蹤", "已處理", "轉介"];
-const APP_VERSION = "20.19.0";
+const APP_VERSION = "20.20.0";
 const APP_BUILD_DATE = "2026-07-30";
-const APP_BUILD_ID = "limu-teacher-v20-19-20260730";
-const APP_CACHE_NAME = "hw-tracker-v20-19";
+const APP_BUILD_ID = "limu-teacher-v20-20-20260730";
+const APP_CACHE_NAME = "hw-tracker-v20-20";
 window.__LIMU_BUILD__ = Object.freeze({
     appVersion: APP_VERSION,
     buildDate: APP_BUILD_DATE,
@@ -14200,7 +14232,7 @@ function App() {
                 position: 'absolute', bottom: 0, left: 0, right: 0,
                 background: theme === 'nerv' ? '#120400' : theme === 'nebula' ? '#0a0c20' : theme === 'mucha' ? '#f4ebdd' : theme === 'odyssey' ? '#f1eadc' : '#fff',
                 borderRadius: '20px 20px 0 0',
-                padding: '20px 0 max(12px,var(--safe-bottom))',
+                padding: '20px 0 calc(14px + var(--safe-bottom))',
                 boxShadow: '0 -8px 40px rgba(0,0,0,.3)',
                 maxHeight:'88dvh', overflowY:'auto', overscrollBehavior:'contain', WebkitOverflowScrolling:'touch'
             } },
@@ -14210,11 +14242,40 @@ function App() {
                     marginBottom: 8, fontFamily: theme === 'nerv' ? 'Share Tech Mono,monospace' : 'inherit'
                 } }, theme === 'nerv' ? '// VENUS OS MENU //' : 'Venus OS'),
                 React.createElement("div", { className:"mucha-panel-divider", "aria-hidden":"true" }),
+                // v20.20：帳號相關三列整合成單一橫列，減少選單長度。
+                React.createElement("div", { style: {
+                    display:'flex', alignItems:'center', gap:10,
+                    padding:'10px 20px 14px',
+                    borderBottom:'1px solid var(--card-line,rgba(0,0,0,.06))'
+                } },
+                    React.createElement("span", { 'aria-hidden':'true', style:{ fontSize:16, flexShrink:0 } }, authed ? '👤' : '📱'),
+                    React.createElement("span", { style: {
+                        flex:1, minWidth:0, fontSize:13, opacity:.8,
+                        overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
+                        fontFamily: theme === 'nerv' ? 'Share Tech Mono,monospace' : 'inherit'
+                    } }, authed ? userEmail : (theme === 'nerv' ? 'LOCAL DEVICE MODE' : '目前使用本機模式')),
+                    authed && React.createElement("button", {
+                        onClick: function(){ setShowGearMenu(false); switchGoogleAccount(); },
+                        'aria-label':'切換 Google 帳號',
+                        style: { flexShrink:0, padding:'7px 12px', borderRadius:8, border:'none',
+                                 background:'var(--card-chip,rgba(0,0,0,.07))', color:'inherit',
+                                 fontSize:12, fontWeight:600, cursor:'pointer' }
+                    }, theme === 'nerv' ? '\u21c4 SWITCH' : '🔁 切換'),
+                    authed && React.createElement("button", {
+                        onClick: function(){ setShowGearMenu(false); signOutAccount(); },
+                        'aria-label':'登出 Google 帳號',
+                        style: { flexShrink:0, padding:'7px 12px', borderRadius:8, border:'none',
+                                 background:'var(--card-chip,rgba(0,0,0,.07))', color:'inherit',
+                                 fontSize:12, fontWeight:600, cursor:'pointer' }
+                    }, theme === 'nerv' ? '\u25c7 OUT' : '🚪 登出'),
+                    !authed && React.createElement("button", {
+                        onClick: function(){ setShowGearMenu(false); leaveLocalModeForLogin(); },
+                        style: { flexShrink:0, padding:'7px 12px', borderRadius:8, border:'none',
+                                 background:'var(--card-accent,rgba(0,0,0,.12))', color:'inherit',
+                                 fontSize:12, fontWeight:600, cursor:'pointer' }
+                    }, theme === 'nerv' ? '\u25c7 LOGIN' : '☁️ 登入')
+                ),
                 [
-                    { icon: authed ? '👤' : '📱', label: authed ? userEmail : '目前使用本機模式', nervLabel: authed ? userEmail : 'LOCAL DEVICE MODE', disabled:true, action:function(){} },
-                    { icon: '🔁', label: '切換 Google 帳號', nervLabel: '\u21c4 SWITCH ACCOUNT', hidden:!authed, action: function(){ setShowGearMenu(false); switchGoogleAccount(); } },
-                    { icon: '🚪', label: '登出 Google 帳號', nervLabel: '\u25c7 SIGN OUT', hidden:!authed, action: function(){ setShowGearMenu(false); signOutAccount(); } },
-                    { icon: '☁️', label: '登入 Google 帳號', nervLabel: '\u25c7 GOOGLE LOGIN', hidden:authed, action: function(){ setShowGearMenu(false); leaveLocalModeForLogin(); } },
                     { icon: '🏠', label: '今日工作台', nervLabel: '\u25c8 TODAY DESK', action: function(){ openTodayWorkspace(); setShowGearMenu(false); } },
                     { icon: '🔎', label: '全域搜尋', nervLabel: '\u25c7 GLOBAL SEARCH', action: function(){ setShowGlobalSearch(true); setShowGearMenu(false); } },
                     { icon: '🗂', label: '歷年档案', nervLabel: '\u25ab ARCHIVE', action: function(){ setView('archive'); setShowGearMenu(false); } },
@@ -15403,8 +15464,8 @@ function App() {
   var updateRegistration = null;
   var reloadingForUpdate = false;
   var updateActivationRequested = false;
-  var SW_BUILD_ID = 'limu-teacher-v20-19-20260730';
-  var SW_CACHE_NAME = 'hw-tracker-v20-19';
+  var SW_BUILD_ID = 'limu-teacher-v20-20-20260730';
+  var SW_CACHE_NAME = 'hw-tracker-v20-20';
   var SW_URL = './sw.js?build=' + encodeURIComponent(SW_BUILD_ID);
   var lastUpdateCheck = 0;
   // v20.16：checkBuildConsistency 本來就有 15 秒節流，但 reg.update() 沒有。
