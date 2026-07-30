@@ -3773,7 +3773,14 @@
         r.push(value);
       });
       return r.sort(function(a,b){ return String(b.weekStart || '').localeCompare(String(a.weekStart || '')); });
-    } catch(e) { return []; }
+    } catch(e) {
+      // v20.19：維持回傳 [] 以免更動呼叫端契約，但至少留下紀錄。
+      // 本機資料不會因此遺失（mergeSecondaryRecords 是 union 合併，
+      // remote 缺少的紀錄會由 !remote 判定 localWins 而保留），
+      // 但換新裝置時查詢失敗會看到空白，正式的錯誤提示待補。
+      try { window._writeLog('error', 'wpGetAll 失敗: ' + (e && e.code || '') + ' ' + (e && e.message || e)); } catch(ex) {}
+      return [];
+    }
   };
   window.grSave = async function(uid, record) {
     try { var result = await window.secondarySaveGuarded(uid, 'gr', record, null, false); return !!(result && result.ok); }
@@ -3794,7 +3801,10 @@
         result.push(value);
       });
       return result.sort(function(a,b){ return Number(b.timestamp || 0) - Number(a.timestamp || 0); });
-    } catch(e) { return []; }
+    } catch(e) {
+      try { window._writeLog('error', 'grGetAll 失敗: ' + (e && e.code || '') + ' ' + (e && e.message || e)); } catch(ex) {}
+      return [];
+    }
   };
   window.grDelete = async function(uid, id) {
     try { var result = await window.secondaryDeleteGuarded(uid, 'gr', id, null, false); return !!(result && result.ok); }
@@ -4063,7 +4073,8 @@ var _scopeGlobalExact = {
   'hw5ren:tok':1,
   'hw5ren:lastUidV1':1,
   'hw5ren:localModeV1':1,
-  'hw5ren:migratedLegacyV1':1
+  'hw5ren:migratedLegacyV1':1,
+  'hw5ren:migratedLegacyPendingV1':1
 };
 var _scopeMemory = {};
 var _scopeHydratedUid = '';
@@ -4201,7 +4212,13 @@ window.LIMUStorageScope = {
     var next = String(uid || '').trim();
     var previous = _activeStorageUid;
     var migrationMarker = rawStorageGet('hw5ren:migratedLegacyV1');
-    var shouldMigrateLegacy = !!next && !previous && !migrationMarker;
+    // v20.19：搬移未完成時記下「待重試」與其歸屬帳號。
+    // 舊版的 shouldMigrateLegacy 要求 !previous，但 _activeStorageUid 在載入時
+    // 就從 lastUidV1 還原，重開 App 後 previous 必然有值——光是不寫完成標記
+    // 並不會產生重試，必須一併放寬觸發條件。
+    var pendingOwner = rawStorageGet('hw5ren:migratedLegacyPendingV1');
+    var shouldMigrateLegacy = !!next && !migrationMarker &&
+      (pendingOwner ? pendingOwner === next : !previous);
     if (shouldMigrateLegacy) {
       var legacyKeys = [];
       var rawKeys = [];
@@ -4218,9 +4235,24 @@ window.LIMUStorageScope = {
       });
       // 先確認每一筆均已複製，再移除未分區舊鍵，避免登出後露出前一帳號資料。
       var verified = legacyKeys.every(function(key){ return rawStorageGet(scopedLocalKey(key, next)) !== null; });
-      if (verified) legacyKeys.forEach(rawStorageRemove);
-      rawStorageSet('hw5ren:migratedLegacyV1', next);
-      rawStorageSet('hw5ren:localMigratedV1:' + scopeUidToken(next), '1');
+      if (verified) {
+        legacyKeys.forEach(rawStorageRemove);
+        // v20.19：完成標記必須與 verified 同一個條件。舊版把它寫在 if 之外，
+        // 複製失敗（例如 localStorage 容量不足，例外被 rawStorageSet 吞掉）時
+        // 來源資料雖然正確保留了，卻仍被標記為已完成 → 永不重試 →
+        // 舊鍵長期躺在 localStorage 裡沒人讀，教師看到的就是資料消失。
+        rawStorageSet('hw5ren:migratedLegacyV1', next);
+        rawStorageSet('hw5ren:localMigratedV1:' + scopeUidToken(next), '1');
+        rawStorageRemove('hw5ren:migratedLegacyPendingV1');
+      } else {
+        // 不寫完成標記，保留來源，記下歸屬帳號供下次登入重試。
+        rawStorageSet('hw5ren:migratedLegacyPendingV1', next);
+        try {
+          if (typeof window !== 'undefined' && window._writeLog) {
+            window._writeLog('error', '本機資料搬移未完成，已保留原始資料並將於下次登入重試');
+          }
+        } catch(eLog) {}
+      }
     }
     _activeStorageUid = next;
     if (previous !== next) {
@@ -4513,10 +4545,10 @@ const WEEKDAYS = ["日", "一", "二", "三", "四", "五", "六"];
 const COUNSEL_PERIODS = ["早自習", "第1節", "第2節", "第3節", "第4節", "午休", "第5節", "第6節", "放學後"];
 const COUNSEL_TYPES = ["學習", "行為", "情緒", "人際", "家庭", "其他"];
 const COUNSEL_FOLLOWUP = ["需追蹤", "已處理", "轉介"];
-const APP_VERSION = "20.18.0";
+const APP_VERSION = "20.19.0";
 const APP_BUILD_DATE = "2026-07-30";
-const APP_BUILD_ID = "limu-teacher-v20-18-20260730";
-const APP_CACHE_NAME = "hw-tracker-v20-18";
+const APP_BUILD_ID = "limu-teacher-v20-19-20260730";
+const APP_CACHE_NAME = "hw-tracker-v20-19";
 window.__LIMU_BUILD__ = Object.freeze({
     appVersion: APP_VERSION,
     buildDate: APP_BUILD_DATE,
@@ -15371,8 +15403,8 @@ function App() {
   var updateRegistration = null;
   var reloadingForUpdate = false;
   var updateActivationRequested = false;
-  var SW_BUILD_ID = 'limu-teacher-v20-18-20260730';
-  var SW_CACHE_NAME = 'hw-tracker-v20-18';
+  var SW_BUILD_ID = 'limu-teacher-v20-19-20260730';
+  var SW_CACHE_NAME = 'hw-tracker-v20-19';
   var SW_URL = './sw.js?build=' + encodeURIComponent(SW_BUILD_ID);
   var lastUpdateCheck = 0;
   // v20.16：checkBuildConsistency 本來就有 15 秒節流，但 reg.update() 沒有。
