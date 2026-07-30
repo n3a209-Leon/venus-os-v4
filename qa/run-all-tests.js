@@ -8,4 +8,4 @@ for (const file of ['run-static-tests.js', 'run-logic-tests.js', 'run-regression
   if (result.status !== 0) process.exit(result.status || 1);
 }
 
-console.log('All LIMU v20.16 checks passed.');
+console.log('All LIMU v20.19 checks passed.');

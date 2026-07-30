@@ -75,8 +75,8 @@ scripts.forEach((code, index) => {
 });
 
 if (failures.length) {
-  console.error('LIMU v20.16 QA failed:\n- ' + failures.join('\n- '));
+  console.error('LIMU v20.19 QA failed:\n- ' + failures.join('\n- '));
   process.exit(1);
 }
 
-console.log('LIMU v20.16 QA passed (' + (25 + assetRefs.length + manifest.icons.length + scripts.length) + ' checks).');
+console.log('LIMU v20.19 QA passed (' + (25 + assetRefs.length + manifest.icons.length + scripts.length) + ' checks).');

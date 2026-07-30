@@ -1,6 +1,6 @@
 'use strict';
 
-// LIMU v20.16 迴歸測試
+// LIMU v20.19 迴歸測試
 //
 // 這一支專門補 run-static-tests.js 測不到的東西。原本那 25 條檢查有 23 條是
 // html.includes('某字串')，驗證的是「這段字有沒有寫進去」，不是「這段邏輯對不對」。
@@ -303,9 +303,106 @@ function decodePng(buffer) {
     'version.json 是 ' + version.version);
 }
 
+// ── v20.19：reload 前不得解鎖 authLoading（會閃出登入頁）─────────────────
+// v20.16 的 finally 修正過頭：activateStorageOwner 觸發 reload 時也解鎖，
+// React 會在 reload 生效前的空檔渲染出登入頁，PWA 裡看起來像「選完帳號被踢回登入頁」。
+{
+  check('reload 前以旗標抑制 authLoading 解鎖',
+    /__LIMU_RELOADING__/.test(html) &&
+    /if \(!window\.__LIMU_RELOADING__\) setAuthLoading\(false\)/.test(html),
+    '缺少 reload 守衛，首次登入會閃出登入頁');
+  const reloadSites = (html.match(/window\.location\.reload\(\)/g) || []).length;
+  const guarded = (html.match(/__LIMU_RELOADING__ = true;\s*\n\s*window\.location\.reload\(\)/g) || []).length;
+  check('auth 流程中的 reload 都有標記', guarded >= 2,
+    `共 ${reloadSites} 處 reload，已標記 ${guarded} 處`);
+}
+
+// ── v20.19：redirect 登入必須被接手 ─────────────────────────────────────
+// gSignIn 在 popup 不可用時會退回 signInWithRedirect（iPhone 主畫面 PWA 必走），
+// 但舊版沒有任何 getRedirectResult，回程沒人處理，使用者選完帳號就回到登入頁。
+{
+  check('有呼叫 getRedirectResult', /getRedirectResult\(\)/.test(html),
+    'redirect 備援登入永遠無法完成');
+  check('standalone PWA 直接走 redirect',
+    /isStandalone[\s\S]{0,300}?signInWithRedirect/.test(html),
+    'iOS standalone 下 signInWithPopup 必定失效');
+  check('popup 備援涵蓋非 popup-blocked 的錯誤碼',
+    /operation-not-supported-in-this-environment/.test(html),
+    '只判斷 auth/popup-blocked 會漏掉 iOS 實際回傳的錯誤');
+  check('登入錯誤訊息包含 err.code',
+    /err\.code \? '\[' \+ err\.code/.test(html),
+    '只顯示 message 無法定位問題');
+}
+
+// ── v20.19：切換帳號必須走 gSignIn，且不得先登出 ─────────────────────────
+// 舊版直接呼叫 signInWithPopup，完全繞過 gSignIn 的 standalone 判斷，
+// 在 iPhone 主畫面 PWA 下必定失效——而且是在已經 signOut 之後才失敗。
+{
+  const start = html.indexOf('async function switchGoogleAccount');
+  const raw = start >= 0 ? html.slice(start, start + 2200) : '';
+  // 先去掉註解再比對，否則解釋用的文字（例如「舊版直接呼叫 signInWithPopup」）
+  // 會被誤判成真的呼叫。
+  const body = raw.replace(/\/\/[^\n]*/g, '');
+  check('switchGoogleAccount 走 gSignIn', /await gSignIn\(/.test(body),
+    '直接呼叫 signInWithPopup 會繞過 iPhone 的 redirect 路徑');
+  check('switchGoogleAccount 不再直接使用 popup',
+    !/signInWithPopup/.test(body));
+  check('switchGoogleAccount 不在登入前先登出',
+    !/signOut\(\)/.test(body),
+    '先登出會在取消或失敗時把使用者留在已登出且分區已清空的狀態');
+  check('gSignIn 可接受自訂 OAuth 參數',
+    /async function gSignIn\(customParams\)/.test(html));
+}
+
+// ── 文件版本必須與 version.json 一致 ────────────────────────────────────
+{
+  const version = JSON.parse(read('version.json'));
+  const readme = read('README-部署說明.md');
+  check('README 標示的 App 版本正確',
+    readme.includes('`' + version.version + '`'),
+    'version.json 是 ' + version.version);
+  check('README 標示的建置編號正確', readme.includes(version.buildId));
+  check('README 標示的快取名稱正確', readme.includes(version.cacheName));
+  // README 引用的 CHANGELOG 必須真的存在
+  const cited = readme.match(/CHANGELOG-v[\d.]+\.md/g) || [];
+  const dangling = cited.filter(name => !fs.existsSync(path.join(root, name)));
+  check('README 引用的 CHANGELOG 檔案存在', dangling.length === 0, dangling.join('、'));
+}
+
+// ── v20.19：搬移完成標記必須與驗證同條件 ────────────────────────────────
+{
+  const start = html.indexOf('setUid:function(uid)');
+  const raw = start >= 0 ? html.slice(start, start + 3200) : '';
+  const body = raw.replace(/\/\/[^\n]*/g, '');
+  // 完成標記必須出現在 if (verified) { ... } 區塊內
+  const verifiedBlock = /if \(verified\) \{([\s\S]*?)\n      \} else \{/.exec(body);
+  check('搬移完成標記寫在 verified 區塊內',
+    !!verifiedBlock && /migratedLegacyV1'/.test(verifiedBlock[1]),
+    '寫在區塊外會讓部分失敗的搬移被誤標為完成，永不重試');
+  check('搬移失敗時記錄待重試帳號',
+    /migratedLegacyPendingV1/.test(body));
+  check('待重試標記列為全域鍵（不可被分區）',
+    /'hw5ren:migratedLegacyPendingV1':1/.test(html));
+  check('重試條件不再只依賴 !previous',
+    /pendingOwner \? pendingOwner === next : !previous/.test(body),
+    '_activeStorageUid 會從 lastUidV1 還原，只靠 !previous 永遠不會重試');
+}
+
+// ── v20.19：雲端查詢失敗不得完全無聲 ────────────────────────────────────
+{
+  // 只檢查雲端查詢函式本身；本機 JSON.parse 的容錯回傳 [] 是合理的。
+  ['wpGetAll', 'grGetAll'].forEach(name => {
+    const start = html.indexOf('window.' + name + ' = async function');
+    const body = start >= 0 ? html.slice(start, start + 1800) : '';
+    check(name + ' 失敗時有留下紀錄',
+      new RegExp(name + ' 失敗').test(body) && !/\} catch\(e\) \{ return \[\]; \}/.test(body),
+      '靜默回傳空陣列會讓教師誤以為雲端資料消失');
+  });
+}
+
 if (failures.length) {
-  console.error('LIMU v20.16 迴歸測試失敗:\n- ' + failures.join('\n- '));
+  console.error('LIMU v20.19 迴歸測試失敗:\n- ' + failures.join('\n- '));
   process.exit(1);
 }
 
-console.log('LIMU v20.16 迴歸測試通過 (' + checks + ' 項)。');
+console.log('LIMU v20.19 迴歸測試通過 (' + checks + ' 項)。');
