@@ -4584,10 +4584,10 @@ const WEEKDAYS = ["日", "一", "二", "三", "四", "五", "六"];
 const COUNSEL_PERIODS = ["早自習", "第1節", "第2節", "第3節", "第4節", "午休", "第5節", "第6節", "放學後"];
 const COUNSEL_TYPES = ["學習", "行為", "情緒", "人際", "家庭", "其他"];
 const COUNSEL_FOLLOWUP = ["需追蹤", "已處理", "轉介"];
-const APP_VERSION = "20.22.0";
+const APP_VERSION = "20.24.0";
 const APP_BUILD_DATE = "2026-07-31";
-const APP_BUILD_ID = "limu-teacher-v20-22-20260731";
-const APP_CACHE_NAME = "hw-tracker-v20-22";
+const APP_BUILD_ID = "limu-teacher-v20-24-20260731";
+const APP_CACHE_NAME = "hw-tracker-v20-24";
 window.__LIMU_BUILD__ = Object.freeze({
     appVersion: APP_VERSION,
     buildDate: APP_BUILD_DATE,
@@ -7667,7 +7667,7 @@ function SettingsView({ groups, saveGroups, groupVersions, saveGroupVersions, sa
         : { fontSize: 12, fontWeight: 700, color: "#6a8aaa", letterSpacing: 1, marginBottom: 8, display: "block" };
     const inp = nerv
         ? { width: "100%", padding: "8px 10px", background: "rgba(255,102,0,.06)", border: "1px solid rgba(255,102,0,.4)", color: "#ff8844", borderRadius: 2, fontSize: 14, fontFamily: "Share Tech Mono,monospace", boxSizing: "border-box" }
-        : { width: "100%", padding: "8px 12px", border: "2px solid #dde5ee", borderRadius: 10, fontSize: 14, fontFamily: "inherit", boxSizing: "border-box", outline: "none" };
+        : { width: "100%", padding: "8px 12px", border: "2px solid #dde5ee", borderRadius: 10, fontSize: 14, fontFamily: "inherit", boxSizing: "border-box", outline: "none", background: "#fff", color: "#1e3a5f" };
     // 數字欄位：點進去自動全選，直接打字即取代舊值（免手動全選）
     const selAll = function(e){ try { e.target.select(); } catch(_) {} };
     var transitionDuplicate = findExistingSchoolYearTransition(
@@ -7957,7 +7957,15 @@ function SettingsView({ groups, saveGroups, groupVersions, saveGroupVersions, sa
                     React.createElement("div", { style:{ display:"flex", gap:6, flexWrap:"wrap", marginBottom:10 } },
                         officerPresets.map(function(t, pi) {
                             return React.createElement("div", { key:pi, style:{ display:"flex", alignItems:"center", gap:2 } },
-                                React.createElement("button", { onClick:function(){ setOfficerRoleInput(t); }, style:{ padding:"5px 10px", fontSize:12, borderRadius:12, border:"1px solid #ce93d8", background: officerRoleInput===t ? (nerv?"#ff8844":"#1e3a5f") : (nerv?"rgba(255,102,0,.06)":"#f3e5f5"), color: officerRoleInput===t ? "#fff" : (nerv?"#ff8844":"#1e3a5f"), cursor:"pointer", fontFamily:"inherit" } }, t),
+                                React.createElement("button", { onClick:function(){
+                                    setOfficerRoleInput(t);
+                                    // v20.23：選完職稱直接把游標送到座號欄，
+                                    // 使用者只需「點一下 + 打數字」即可完成。
+                                    setTimeout(function(){
+                                        var el = document.getElementById('officer-seat-input');
+                                        if (el) { try { el.focus(); el.select(); } catch(e) {} }
+                                    }, 0);
+                                }, style:{ padding:"7px 12px", fontSize:13, borderRadius:12, border:"1px solid #ce93d8", background: officerRoleInput===t ? (nerv?"#ff8844":"#1e3a5f") : (nerv?"rgba(255,102,0,.06)":"#f3e5f5"), color: officerRoleInput===t ? "#fff" : (nerv?"#ff8844":"#1e3a5f"), cursor:"pointer", fontFamily:"inherit" } }, t),
                                 React.createElement("button", { onClick:function(e){ e.stopPropagation();
                                         var next = officerPresets.filter(function(_,i){ return i!==pi; });
                                         setOfficerPresets(next);
@@ -7965,7 +7973,7 @@ function SettingsView({ groups, saveGroups, groupVersions, saveGroupVersions, sa
                                     }, style:{ background:"none", border:"none", color:(nerv?"rgba(255,102,0,.4)":"#ce93d8"), cursor:"pointer", fontSize:14, padding:"0 2px", lineHeight:1 } }, "\u00D7"));
                         })),
                     React.createElement("div", { style:{ display:"flex", gap:6, marginBottom:14 } },
-                        React.createElement("input", { style:{ flex:1, padding:"6px 10px", border:"1px solid #ce93d8", borderRadius:10, fontSize:12, fontFamily:"inherit", outline:"none", background:(nerv?"#0f1a0f":"#fff"), color:(nerv?"#00ff66":"#1e3a5f") },
+                        React.createElement("input", { style:{ flex:1, minWidth:0, padding:"6px 10px", border:"1px solid #ce93d8", borderRadius:10, fontSize:12, fontFamily:"inherit", outline:"none", background:(nerv?"#0f1a0f":"#fff"), color:(nerv?"#00ff66":"#1e3a5f") },
                             placeholder:"\u65B0\u589E\u5FEB\u901F\u9078\u9805\u2026", value:officerPresetInput,
                             onChange:function(e){ setOfficerPresetInput(e.target.value); },
                             onKeyDown:function(e){ if(e.key==='Enter' && officerPresetInput.trim()){
@@ -7988,7 +7996,7 @@ function SettingsView({ groups, saveGroups, groupVersions, saveGroupVersions, sa
                             onChange:function(e){ setOfficerRoleInput(e.target.value); } }),
                         React.createElement("div", { style:{ fontSize:12, color:(nerv?"rgba(255,102,0,.6)":"#b388c9"), marginBottom:8, fontWeight:600 } }, "\u5EA7\u865F"),
                         React.createElement("input", { type:"number", style:{ width:"100%", padding:"10px 12px", border:"1.5px solid #ce93d8", borderRadius:10, fontSize:14, boxSizing:"border-box", fontFamily:"inherit", outline:"none" },
-                            placeholder:"\u4F8B\uFF1A7", value:officerSeatInput, onFocus:selAll,
+                            id:"officer-seat-input", placeholder:"\u4F8B\uFF1A7", value:officerSeatInput, onFocus:selAll,
                             onChange:function(e){ setOfficerSeatInput(e.target.value); },
                             onKeyDown:function(e){ if(e.key==='Enter' && officerRoleInput.trim() && officerSeatInput.trim()){
                                 var next = JSON.parse(JSON.stringify(officers));
@@ -15275,138 +15283,10 @@ function App() {
 });
 </script>
 <script>
-// ── Nebula 動態星點系統 ─────────────────────────────────────
-(function() {
-  function initStars() {
-    var app = document.querySelector('[data-theme="nebula"]');
-    if (!app) return;
-    // 避免重複建立
-    if (document.getElementById('nebula-canvas')) return;
-
-    var canvas = document.createElement('canvas');
-    canvas.id = 'nebula-canvas';
-    canvas.style.cssText = 'position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.7';
-    document.body.insertBefore(canvas, document.body.firstChild);
-
-    var ctx = canvas.getContext('2d');
-    var stars = [];
-    var W, H;
-
-    function resize() {
-      W = canvas.width  = window.innerWidth;
-      H = canvas.height = window.innerHeight;
-    }
-    resize();
-    window.addEventListener('resize', resize);
-
-    // 建立星星
-    for (var i = 0; i < 160; i++) {
-      stars.push({
-        x: Math.random() * 2,      // 相對位置 0-1
-        y: Math.random() * 2,
-        r: Math.random() * 1.4 + 0.2,
-        speed: Math.random() * 0.0003 + 0.00008,
-        phase: Math.random() * Math.PI * 2,
-        color: ['#fff','#e8e0ff','#c8d8ff','#b0c8ff','#d4b8ff'][Math.floor(Math.random()*5)]
-      });
-    }
-
-    var t = 0;
-    var running = true;
-    // v20.16：舊版在非星雲主題時用 setTimeout(draw,600) 無限遞迴，就算使用者
-    // 一輩子不用星雲主題，整個 App 生命週期內仍每 600ms 跑一次 querySelector +
-    // matchMedia。改成真正停止，由 themeObserver 在切回星雲主題時重新啟動。
-    function draw() {
-      if (!running) return;
-      if (!document.querySelector('[data-theme="nebula"]')) {
-        // 已離開星雲主題：移除畫布與監聽器，徹底停止。
-        running = false;
-        try { window.removeEventListener('resize', resize); } catch(e) {}
-        try { canvas.remove(); } catch(e) {}
-        return;
-      }
-      // 背景分頁或減少動態效果：暫停繪製但保留畫布，用低頻輪詢等待恢復。
-      if (document.hidden || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-        canvas.style.opacity = '0';
-        setTimeout(draw, 600);
-        return;
-      }
-      canvas.style.opacity = '.7';
-      ctx.clearRect(0, 0, W, H);
-      t += 0.008;
-
-      for (var i = 0; i < stars.length; i++) {
-        var s = stars[i];
-        var x = ((s.x + t * s.speed * 0.3) % 1) * W;
-        var y = ((s.y + t * s.speed) % 1) * H;
-        var twinkle = 0.4 + 0.6 * Math.abs(Math.sin(t * 1.5 + s.phase));
-
-        ctx.save();
-        ctx.globalAlpha = twinkle * 0.85;
-        ctx.fillStyle = s.color;
-        ctx.shadowColor = s.color;
-        ctx.shadowBlur = s.r * 3;
-        ctx.beginPath();
-        ctx.arc(x, y, s.r, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
-      }
-
-      // 偶爾加入流星
-      if (Math.random() < 0.004) {
-        var mx = Math.random() * W;
-        var my = Math.random() * H * 0.5;
-        var grad = ctx.createLinearGradient(mx, my, mx + 80, my + 30);
-        grad.addColorStop(0, 'rgba(255,255,255,0)');
-        grad.addColorStop(0.5, 'rgba(220,200,255,0.6)');
-        grad.addColorStop(1, 'rgba(255,255,255,0)');
-        ctx.strokeStyle = grad;
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(mx, my);
-        ctx.lineTo(mx + 80, my + 30);
-        ctx.stroke();
-      }
-
-      requestAnimationFrame(draw);
-    }
-    draw();
-  }
-
-  // 等 DOM ready 後初始化，並監聽主題切換
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function() { setTimeout(initStars, 500); });
-  } else {
-    setTimeout(initStars, 500);
-  }
-
-  // 主題切換時重新初始化
-  // v20.16 修正兩件事：
-  //  1. 舊版寫成「if (m.attributeName === 'data-theme') return」，等於把唯一
-  //     真正該處理的事件跳過；它能運作純粹是靠 React 頻繁改 DOM 湊巧補上。
-  //  2. 舊版 observe(document.body, {childList,subtree,attributes})，React 每次
-  //     re-render（打字、切日期、捲動）都會產生大量 mutation records，
-  //     每一筆都跑兩次 DOM 查詢，是全域性的效能稅。
-  //     改用 attributeFilter 只聽 data-theme，並把批次合併成一次檢查。
-  function syncNebula() {
-    var nebulaApp = document.querySelector('[data-theme="nebula"]');
-    if (nebulaApp && !document.getElementById('nebula-canvas')) initStars();
-  }
-  try {
-    var observeRoot = document.getElementById('root') || document.body;
-    // 注意：對同一個節點呼叫 observe() 兩次會覆蓋前一次的設定，
-    // 而 subtree 無法只套用在其中一種型別上，因此拆成兩個 observer。
-    // (a) 主題切換：data-theme 在子孫節點上被改寫。
-    new MutationObserver(syncNebula).observe(observeRoot, {
-      subtree: true,
-      attributes: true,
-      attributeFilter: ['data-theme']
-    });
-    // (b) 首次掛載：React 建立元素時 data-theme 已經設好，不會產生 attributes
-    //     record，需要靠 childList 補。只聽 #root 直接子層，成本極低。
-    new MutationObserver(syncNebula).observe(observeRoot, { childList: true });
-  } catch(e) {}
-})(); 
+// v20.24：Nebula 動態星點系統已移除。
+// 使用者回報從未察覺星點在流動，而這個整頁 position:fixed 的 canvas
+// 每幀重繪會與 Safari 的捲動圖層重建互相干擾，造成操作後第一次滑動卡頓。
+// 星雲主題的靜態背景由 CSS 提供，外觀不受影響。
 
 // 2. 🟢 獨立出來的 PWA 點擊修復區塊（修正了括號，安全閉合）
 (function() {
@@ -15488,8 +15368,8 @@ function App() {
   var updateRegistration = null;
   var reloadingForUpdate = false;
   var updateActivationRequested = false;
-  var SW_BUILD_ID = 'limu-teacher-v20-22-20260731';
-  var SW_CACHE_NAME = 'hw-tracker-v20-22';
+  var SW_BUILD_ID = 'limu-teacher-v20-24-20260731';
+  var SW_CACHE_NAME = 'hw-tracker-v20-24';
   var SW_URL = './sw.js?build=' + encodeURIComponent(SW_BUILD_ID);
   var lastUpdateCheck = 0;
   // v20.16：checkBuildConsistency 本來就有 15 秒節流，但 reg.update() 沒有。
