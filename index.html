@@ -2207,6 +2207,8 @@
             padding-bottom:max(18px,var(--safe-bottom))!important;
           }
           .settings-tabbar{margin-left:-2px;margin-right:-2px}
+          /* Safari 長頁若延後建立內容範圍，手勢會短暫像是拉不動。手機採完整排版。 */
+          .archive-wrap,.settings-view{content-visibility:visible;contain-intrinsic-size:none}
         }
         @media(prefers-reduced-motion:reduce){
           *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
@@ -2228,6 +2230,15 @@
         html.performance-paused *,html.performance-paused *::before,html.performance-paused *::after{
           animation-play-state:paused!important;
         }
+        /* v20.33：手指拖曳與慣性捲動時暫停純裝飾動畫，將合成資源留給原生捲動。 */
+        html.limu-user-scrolling *,
+        html.limu-user-scrolling *::before,
+        html.limu-user-scrolling *::after{animation-play-state:paused!important}
+        html.limu-user-scrolling .app[data-theme="mucha"] main::before,
+        html.limu-user-scrolling .app[data-theme="nebula"] main::before,
+        html.limu-user-scrolling .app[data-theme="mucha"] .calendar::after,
+        html.limu-user-scrolling .app[data-theme="mucha"] .month-summary::after,
+        html.limu-user-scrolling .app[data-theme="nebula"] .calendar::after{filter:none!important}
         .app[data-theme="default"]{
           color:var(--limu-ink);
           background:
@@ -3944,6 +3955,69 @@ window.addEventListener('pagehide', function() {
 window.addEventListener('pageshow', function(e) {
   try { window._writeLog('step', 'pageshow persisted:' + e.persisted); } catch(e) {}
 });
+
+// v20.33：滑動優先排程器。所有監聽器都是 passive，不攔截 Safari 原生捲動。
+(function() {
+  var docEl = document.documentElement;
+  var touchActive = false;
+  var lastActivity = 0;
+  var quietTimer = null;
+  var quietMs = 240;
+  function scheduleQuietCheck() {
+    if (quietTimer !== null) clearTimeout(quietTimer);
+    quietTimer = setTimeout(function checkQuiet() {
+      var now = performance.now ? performance.now() : Date.now();
+      var remaining = quietMs - (now - lastActivity);
+      if (touchActive || remaining > 0) {
+        quietTimer = setTimeout(checkQuiet, Math.max(50, remaining || 80));
+        return;
+      }
+      quietTimer = null;
+      docEl.classList.remove('limu-user-scrolling');
+      try { window.dispatchEvent(new CustomEvent('limu-interaction-idle')); } catch(e) {}
+    }, quietMs);
+  }
+  function setBusy() {
+    lastActivity = performance.now ? performance.now() : Date.now();
+    if (!docEl.classList.contains('limu-user-scrolling')) docEl.classList.add('limu-user-scrolling');
+    scheduleQuietCheck();
+  }
+  function isBusy() {
+    var now = performance.now ? performance.now() : Date.now();
+    return touchActive || (now - lastActivity) < quietMs;
+  }
+  function runWhenIdle(callback, options) {
+    var opts = options || {};
+    var started = Date.now();
+    var maxWait = Math.max(500, Number(opts.maxWait) || 6000);
+    var token = { cancelled:false, timer:null, idleId:null };
+    function invoke() {
+      if (token.cancelled) return;
+      if (typeof requestIdleCallback === 'function') {
+        token.idleId = requestIdleCallback(function() { if (!token.cancelled) callback(); },
+          { timeout:Math.max(300, Number(opts.timeout) || 1000) });
+      } else token.timer = setTimeout(function(){ if (!token.cancelled) callback(); }, 32);
+    }
+    function poll() {
+      if (token.cancelled) return;
+      if (!isBusy() || Date.now() - started >= maxWait) { invoke(); return; }
+      token.timer = setTimeout(poll, 90);
+    }
+    poll();
+    token.cancel = function() {
+      token.cancelled = true;
+      if (token.timer !== null) clearTimeout(token.timer);
+      if (token.idleId !== null && typeof cancelIdleCallback === 'function') cancelIdleCallback(token.idleId);
+    };
+    return token;
+  }
+  document.addEventListener('touchstart', function(){ touchActive = true; setBusy(); }, { passive:true, capture:true });
+  document.addEventListener('touchmove', setBusy, { passive:true, capture:true });
+  document.addEventListener('touchend', function(){ touchActive = false; setBusy(); }, { passive:true, capture:true });
+  document.addEventListener('touchcancel', function(){ touchActive = false; setBusy(); }, { passive:true, capture:true });
+  document.addEventListener('scroll', setBusy, { passive:true, capture:true });
+  window.LIMUInteraction = Object.freeze({ isBusy:isBusy, runWhenIdle:runWhenIdle });
+})();
 try {
   _isPWA = window.navigator.standalone === true ||
            window.matchMedia('(display-mode: standalone)').matches;
@@ -4168,23 +4242,75 @@ function openScopeDatabase() {
     request.onblocked = function(){ reject(new Error('IDB blocked')); };
   });
 }
-function persistScopedState(logicalKey, value, remove) {
-  var uid = _activeStorageUid;
-  if (!uid) return Promise.resolve(false);
-  var physical = 'u:' + scopeUidToken(uid) + ':' + String(logicalKey || '');
+// v20.33：同一輪操作的 appState 寫入依 key 合併，滑動結束後以單一交易提交。
+var _stateWriteQueue = {};
+var _stateFlushToken = null;
+var _stateFlushRunning = false;
+function scheduleScopedStateFlush() {
+  if (_stateFlushToken || _stateFlushRunning) return;
+  var runner = function(){ _stateFlushToken = null; flushScopedStateQueue(); };
+  if (window.LIMUInteraction && window.LIMUInteraction.runWhenIdle) {
+    _stateFlushToken = window.LIMUInteraction.runWhenIdle(runner, { timeout:900, maxWait:3500 });
+  } else {
+    var timer = setTimeout(runner, 120);
+    _stateFlushToken = { cancel:function(){ clearTimeout(timer); } };
+  }
+}
+function flushScopedStateQueue() {
+  var physicalKeys = Object.keys(_stateWriteQueue);
+  if (!physicalKeys.length || _stateFlushRunning) return Promise.resolve(true);
+  var batch = _stateWriteQueue;
+  _stateWriteQueue = {};
+  _stateFlushRunning = true;
   return openScopeDatabase().then(function(db) {
     return new Promise(function(resolve, reject) {
       var tx = db.transaction('appState', 'readwrite');
       var store = tx.objectStore('appState');
-      if (remove) store.delete(physical); else store.put(String(value), physical);
+      physicalKeys.forEach(function(physical) {
+        var entry = batch[physical];
+        if (entry.remove) store.delete(physical); else store.put(entry.value, physical);
+      });
       tx.oncomplete = function(){ resolve(true); };
-      tx.onerror = function(event){ reject(event.target.error || new Error('State write failed')); };
+      tx.onerror = function(event){ reject(event.target.error || new Error('State batch write failed')); };
+      tx.onabort = function(event){ reject(event.target.error || new Error('State batch write aborted')); };
     }).finally(function(){ try { db.close(); } catch(e) {} });
   }).catch(function(error) {
     try { window._writeLog && window._writeLog('error', 'state IDB: ' + String(error && error.message || error)); } catch(e) {}
-    if (!remove) rawStorageSet(scopedLocalKey(logicalKey, uid), value);
+    physicalKeys.forEach(function(physical) {
+      var entry = batch[physical];
+      var fallbackKey = scopedLocalKey(entry.logical, entry.uid);
+      if (entry.remove) rawStorageRemove(fallbackKey); else rawStorageSet(fallbackKey, entry.value);
+    });
     return false;
+  }).then(function(ok) {
+    physicalKeys.forEach(function(physical) {
+      (batch[physical].resolvers || []).forEach(function(resolve){ try { resolve(ok); } catch(e) {} });
+    });
+    return ok;
+  }).finally(function() {
+    _stateFlushRunning = false;
+    if (Object.keys(_stateWriteQueue).length) scheduleScopedStateFlush();
   });
+}
+function persistScopedState(logicalKey, value, remove) {
+  var uid = _activeStorageUid;
+  if (!uid) return Promise.resolve(false);
+  var logical = String(logicalKey || '');
+  var physical = 'u:' + scopeUidToken(uid) + ':' + logical;
+  return new Promise(function(resolve) {
+    var previous = _stateWriteQueue[physical];
+    _stateWriteQueue[physical] = {
+      uid:uid, logical:logical, value:String(value), remove:remove === true,
+      resolvers:(previous && previous.resolvers ? previous.resolvers : []).concat(resolve)
+    };
+    scheduleScopedStateFlush();
+  });
+}
+if (typeof document !== 'undefined' && document.addEventListener) {
+  document.addEventListener('visibilitychange', function(){ if (document.hidden) flushScopedStateQueue(); });
+}
+if (typeof window !== 'undefined' && window.addEventListener) {
+  window.addEventListener('pagehide', function(){ flushScopedStateQueue(); });
 }
 function visibleStorageKeys() {
   var out = [], seen = {}, owner = _activeStorageUid;
@@ -4580,10 +4706,10 @@ const WEEKDAYS = ["日", "一", "二", "三", "四", "五", "六"];
 const COUNSEL_PERIODS = ["早自習", "第1節", "第2節", "第3節", "第4節", "午休", "第5節", "第6節", "放學後"];
 const COUNSEL_TYPES = ["學習", "行為", "情緒", "人際", "家庭", "其他"];
 const COUNSEL_FOLLOWUP = ["需追蹤", "已處理", "轉介"];
-const APP_VERSION = "20.32.0";
-const APP_BUILD_DATE = "2026-07-31";
-const APP_BUILD_ID = "limu-teacher-v20-32-20260731";
-const APP_CACHE_NAME = "hw-tracker-v20-32";
+const APP_VERSION = "20.34.0";
+const APP_BUILD_DATE = "2026-08-01";
+const APP_BUILD_ID = "limu-teacher-v20-34-20260801";
+const APP_CACHE_NAME = "hw-tracker-v20-34";
 window.__LIMU_BUILD__ = Object.freeze({
     appVersion: APP_VERSION,
     buildDate: APP_BUILD_DATE,
@@ -4867,21 +4993,44 @@ async function migrateLegacyIdbForCurrentUser() {
 }
 const DIRTY_MAP_KEY = "hw5ren:dirtyKeysV2";
 var DIRTY_MEMORY = {};
+var DIRTY_LOADED_UID = null;
+var DIRTY_FLUSH_TOKEN = null;
+function currentDirtyUid() {
+    try { return window.LIMUStorageScope ? window.LIMUStorageScope.getUid() : ''; } catch(e) { return ''; }
+}
 function readDirtyMap() {
+    var uid = currentDirtyUid();
+    if (DIRTY_LOADED_UID === uid) return Object.assign({}, DIRTY_MEMORY);
     try {
         var raw = _sl.get(DIRTY_MAP_KEY);
         var parsed = raw ? JSON.parse(raw) : {};
         if (Array.isArray(parsed)) {
             var migrated = {};
             parsed.forEach(function(k){ migrated[k] = Date.now(); });
-            return Object.assign({}, DIRTY_MEMORY, migrated);
+            DIRTY_MEMORY = migrated;
+        } else {
+            DIRTY_MEMORY = parsed && typeof parsed === 'object' ? parsed : {};
         }
-        return Object.assign({}, DIRTY_MEMORY, parsed && typeof parsed === 'object' ? parsed : {});
-    } catch(e) { return Object.assign({}, DIRTY_MEMORY); }
+    } catch(e) { DIRTY_MEMORY = {}; }
+    DIRTY_LOADED_UID = uid;
+    return Object.assign({}, DIRTY_MEMORY);
+}
+function flushDirtyMapNow() {
+    if (DIRTY_LOADED_UID === null) return;
+    DIRTY_FLUSH_TOKEN = null;
+    try { _sl.set(DIRTY_MAP_KEY, JSON.stringify(DIRTY_MEMORY)); } catch(e) {}
 }
 function writeDirtyMap(map) {
     DIRTY_MEMORY = Object.assign({}, map || {});
-    try { _sl.set(DIRTY_MAP_KEY, JSON.stringify(DIRTY_MEMORY)); } catch(e) {}
+    DIRTY_LOADED_UID = currentDirtyUid();
+    if (DIRTY_FLUSH_TOKEN) return;
+    var runner = function(){ flushDirtyMapNow(); };
+    if (window.LIMUInteraction && window.LIMUInteraction.runWhenIdle) {
+        DIRTY_FLUSH_TOKEN = window.LIMUInteraction.runWhenIdle(runner, { timeout:700, maxWait:2500 });
+    } else {
+        var timer = setTimeout(runner, 160);
+        DIRTY_FLUSH_TOKEN = { cancel:function(){ clearTimeout(timer); } };
+    }
 }
 function markDirtyKey(key) {
     var map = readDirtyMap();
@@ -4896,6 +5045,8 @@ function clearDirtyKeys(keys) {
     (keys || []).forEach(function(k){ delete map[k]; });
     writeDirtyMap(map);
 }
+document.addEventListener('visibilitychange', function(){ if (document.hidden) flushDirtyMapNow(); });
+window.addEventListener('pagehide', flushDirtyMapNow);
 // ── Counseling load / save ───────────────────────────────────────────────────
 async function loadCounsel(dateStr) {
     var pfx = classPrefix();
@@ -4925,8 +5076,11 @@ async function saveCounsel(dateStr, records) {
     var idbOk = false, lsOk = false;
     try { idbOk = await idbSet(storageKey, json); }
     catch (_a) { }
-    try { lsOk = _sl.set("hw5ren:c:"+pfx+dateStr, json) === true; }
-    catch (_b) { }
+    if (idbOk) queueLsBackup("hw5ren:c:"+pfx+dateStr, json);
+    else {
+        try { lsOk = _sl.set("hw5ren:c:"+pfx+dateStr, json) === true; }
+        catch (_b) { }
+    }
     markDirtyKey(storageKey);
     return { ok: idbOk || lsOk, source: idbOk ? 'idb' : (lsOk ? 'local' : 'memory') };
 }
@@ -6067,18 +6221,29 @@ async function loadDay(dateStr) {
 var _lsBackupQueue = {};
 var _lsBackupTimer = null;
 function flushLsBackup() {
+    var pending = _lsBackupTimer;
     _lsBackupTimer = null;
-    var _t0 = (window.__LIMU_PERF__ && window.__LIMU_PERF__.on) ? performance.now() : 0;
+    if (pending && pending.cancel) pending.cancel();
+    else if (typeof pending === 'number') clearTimeout(pending);
     var keys = Object.keys(_lsBackupQueue);
     for (var i = 0; i < keys.length; i++) {
         try { _sl.set(keys[i], _lsBackupQueue[keys[i]]); } catch(e) {}
         delete _lsBackupQueue[keys[i]];
     }
-    if (_t0) {
-        var P = window.__LIMU_PERF__;
-        P.saves.push({ at: performance.now(), dur: performance.now() - _t0 });
-        if (P.saves.length > 200) P.saves.shift();
+}
+function scheduleLsBackupFlush() {
+    if (_lsBackupTimer !== null) return;
+    var runner = function(){ _lsBackupTimer = null; flushLsBackup(); };
+    if (window.LIMUInteraction && window.LIMUInteraction.runWhenIdle) {
+        _lsBackupTimer = window.LIMUInteraction.runWhenIdle(runner, { timeout:900, maxWait:3000 });
+    } else {
+        var timer = setTimeout(runner, 700);
+        _lsBackupTimer = { cancel:function(){ clearTimeout(timer); } };
     }
+}
+function queueLsBackup(key, value) {
+    _lsBackupQueue[key] = value;
+    scheduleLsBackupFlush();
 }
 try {
     window.addEventListener('pagehide', flushLsBackup);
@@ -6091,13 +6256,7 @@ try {
 async function saveDay(dateStr, rows, attendance, exempt, attendancePeriod, slips) {
     var pfx = classPrefix();
     var storageKey = pfx+"day:"+dateStr;
-    var _s0 = (window.__LIMU_PERF__ && window.__LIMU_PERF__.on) ? performance.now() : 0;
     const json = JSON.stringify(ser(rows, attendance, exempt, attendancePeriod, slips));
-    if (_s0) {
-        var _P = window.__LIMU_PERF__;
-        _P.saves.push({ at: performance.now(), dur: performance.now() - _s0 });
-        if (_P.saves.length > 200) _P.saves.shift();
-    }
     // 1. IndexedDB（主要）
     let idbOk = false;
     try {
@@ -6109,8 +6268,7 @@ async function saveDay(dateStr, rows, attendance, exempt, attendancePeriod, slip
     var lsKey = "hw5ren:"+pfx+dateStr;
     if (idbOk) {
         // 主要儲存已成功，備援延後合併寫入，避免阻塞主執行緒
-        _lsBackupQueue[lsKey] = json;
-        if (_lsBackupTimer === null) _lsBackupTimer = setTimeout(flushLsBackup, 700);
+        queueLsBackup(lsKey, json);
     } else {
         try { lsOk = _sl.set(lsKey, json) === true; }
         catch (_b) { }
@@ -10899,6 +11057,7 @@ function App() {
     const autoSyncTimer = useRef(null);
     const retrySyncTimer = useRef(null);
     const retryAttemptRef = useRef(0);
+    const saveSeqRef = useRef(0);
     function resetRetrySync() {
         if (retrySyncTimer.current) clearTimeout(retrySyncTimer.current);
         retrySyncTimer.current = null;
@@ -10912,7 +11071,11 @@ function App() {
         retryAttemptRef.current = Math.min(retryAttemptRef.current + 1, 4);
         try { _sl.set('hw5ren:syncRetryV10', JSON.stringify({ attempt:attempt + 1, dueAt:Date.now() + delay, reason:reason || '' })); } catch(e) {}
         setDriveError((reason || '雲端暫時無法連線') + '，將於 ' + Math.ceil(delay / 1000) + ' 秒後自動重試');
-        retrySyncTimer.current = setTimeout(function() {
+        function startRetryWhenQuiet() {
+            if (window.LIMUInteraction && window.LIMUInteraction.isBusy()) {
+                retrySyncTimer.current = setTimeout(startRetryWhenQuiet, 500);
+                return;
+            }
             retrySyncTimer.current = null;
             if (!navigator.onLine || !firebaseUid) return;
             setDriveStatus('syncing');
@@ -10923,7 +11086,8 @@ function App() {
             }).catch(function(err){
                 if (!(err && err.noRetry)) scheduleRetrySync('Firebase 暫時無法完成同步');
             });
-        }, delay);
+        }
+        retrySyncTimer.current = setTimeout(startRetryWhenQuiet, delay);
     }
     useEffect(function(){
         return function(){
@@ -10936,7 +11100,13 @@ function App() {
             return;
         if (autoSyncTimer.current)
             clearTimeout(autoSyncTimer.current);
-        autoSyncTimer.current = setTimeout(async () => {
+        function startWhenQuiet() {
+            if (window.LIMUInteraction && window.LIMUInteraction.isBusy()) {
+                autoSyncTimer.current = setTimeout(startWhenQuiet, 450);
+                return;
+            }
+            autoSyncTimer.current = null;
+            (async function() {
             try {
                 var _pfx = classPrefix();
                 var _cid2 = _sl.get("hw5ren:activeClass") || activeClassId;
@@ -10976,7 +11146,9 @@ function App() {
                 setDriveError(String((_a && _a.message) || _a).slice(0,80));
                 scheduleRetrySync('Firebase 暫時無法完成同步');
             }
-        }, 3000);
+            })();
+        }
+        autoSyncTimer.current = setTimeout(startWhenQuiet, 3000);
     }
     async function saveCurrent(newRows, newAtt, newExempt, newSlips, newLate, newPeriod) {
         const rows = newRows !== null && newRows !== void 0 ? newRows : dayRowsRef.current;
@@ -10985,18 +11157,25 @@ function App() {
         const slips = newSlips !== null && newSlips !== void 0 ? newSlips : daySlipsRef.current;
         const late = newLate !== null && newLate !== void 0 ? newLate : dayLateRef.current;
         const period = newPeriod !== null && newPeriod !== void 0 ? newPeriod : attPeriodRef.current;
-        setStor(s => (Object.assign(Object.assign({}, s), { state: "saving", msg: "\uD83D\uDCBE \u5132\u5B58\u4E2D\u2026" })));
+        var saveSeq = ++saveSeqRef.current;
+        var savingIndicator = setTimeout(function() {
+            if (saveSeq === saveSeqRef.current) setStor(function(s){ return Object.assign({}, s, { state:"saving", msg:"\uD83D\uDCBE \u5132\u5B58\u4E2D\u2026" }); });
+        }, 160);
         const date = selDateRef.current;
         const attForSave = Object.assign({}, att, { late: late });
         const res = await saveDay(date, rows, attForSave, exempt, period, slips);
-        setMonthDays(prev => (Object.assign(Object.assign({}, prev), { [date]: { rows, attendance: attForSave, exempt, attendancePeriod: period, slips: slips } })));
-        if (!res.ok) {
-            setStor({ state: "error", msg: "❌ 本機儲存失敗", detail: date });
-            return false;
-        }
-        setStor({ state: "saved",
-            msg: res.source === "idb" ? "\uD83D\uDCE6 \u5DF2\u5132\u5B58\uFF08IDB\uFF09" : "\uD83D\uDCBE \u5DF2\u5132\u5B58\uFF08\u672C\u6A5F\uFF09",
-            detail: date });
+        clearTimeout(savingIndicator);
+        if (saveSeq !== saveSeqRef.current) return res.ok;
+        var updateSavedUi = function() {
+            setMonthDays(prev => (Object.assign(Object.assign({}, prev), { [date]: { rows, attendance: attForSave, exempt, attendancePeriod: period, slips: slips } })));
+            if (!res.ok) setStor({ state: "error", msg: "❌ 本機儲存失敗", detail: date });
+            else setStor({ state: "saved",
+                msg: res.source === "idb" ? "\uD83D\uDCE6 \u5DF2\u5132\u5B58\uFF08IDB\uFF09" : "\uD83D\uDCBE \u5DF2\u5132\u5B58\uFF08\u672C\u6A5F\uFF09",
+                detail: date });
+        };
+        if (ReactDOM && ReactDOM.unstable_batchedUpdates) ReactDOM.unstable_batchedUpdates(updateSavedUi);
+        else updateSavedUi();
+        if (!res.ok) return false;
         setTimeout(() => setStor(s => s.state === "saved"
             ? { state: "ok", msg: res.source === "idb" ? "\uD83D\uDCE6 IDB \u6B63\u5E38" : "\uD83D\uDCBE \u672C\u6A5F\u5132\u5B58", detail: "" }
             : s), 2000);
@@ -11253,15 +11432,16 @@ function App() {
     const [lateModal, setLateModal] = useState(false);
     // v18：iPhone 底層捲動鎖。開啟任何主要面板時固定原捲動位置，
     // 關閉後精準回復，避免彈窗捲到底時帶動背後頁面。
+    // v20.33：彈窗內容切換時不反覆解鎖／再鎖定 body。
+    var shouldLockPage = !!(
+        showDatePicker || grDialog || grCenter || grFormalTarget || wpOpen ||
+        showThemeMenu || showGearMenu || showCalImport || dayEventModal ||
+        showHistory || showConflictCenter || slipNameModal || modal ||
+        attModal || periodModal || lateModal || showTodayDashboard || showGlobalSearch ||
+        showClassLocator
+    );
     useEffect(function() {
-        var shouldLock = !!(
-            showDatePicker || grDialog || grCenter || grFormalTarget || wpOpen ||
-            showThemeMenu || showGearMenu || showCalImport || dayEventModal ||
-            showHistory || showConflictCenter || slipNameModal || modal ||
-            attModal || periodModal || lateModal || showTodayDashboard || showGlobalSearch ||
-            showClassLocator
-        );
-        if (!shouldLock) return;
+        if (!shouldLockPage) return;
         var scrollY = window.scrollY || window.pageYOffset || 0;
         var body = document.body, root = document.documentElement;
         var previous = {
@@ -11283,13 +11463,7 @@ function App() {
             root.style.overscrollBehavior = previous.rootOverscroll;
             try { window.scrollTo(0, scrollY); } catch(e) {}
         };
-    }, [
-        showDatePicker, grDialog, grCenter, grFormalTarget, wpOpen,
-        showThemeMenu, showGearMenu, showCalImport, dayEventModal,
-        showHistory, showConflictCenter, slipNameModal, modal,
-        attModal, periodModal, lateModal, showTodayDashboard, showGlobalSearch,
-        showClassLocator
-    ]);
+    }, [shouldLockPage]);
     function toggleLate(num) {
         setDayLate(prev => {
             const next = new Set(prev);
@@ -15305,12 +15479,7 @@ function App() {
 }
 
     debugStep('RENDER START');
-    // v20.32：診斷開啟時才包 Profiler，關閉時完全不增加任何成本。
-    var _rootEl = React.createElement(App);
-    if (window.__LIMU_PERF__ && window.__LIMU_PERF__.on && React.Profiler) {
-        _rootEl = React.createElement(React.Profiler, { id:'limu', onRender:window.__limuPerfCommit }, _rootEl);
-    }
-    ReactDOM.render(_rootEl, document.getElementById('root'));
+    ReactDOM.render(React.createElement(App), document.getElementById('root'));
     // 立刻設 _appReady，不等 useEffect
     try { window._appReady = true; } catch(ex) {}
     debugStep('RENDER COMPLETE (sync)');
@@ -15349,107 +15518,6 @@ function App() {
   waitForReact(20); // 等最多 10 秒（20 × 500ms）
 });
 </script>
-<script>
-// ── v20.32：內建效能診斷探針 ─────────────────────────────────────────
-// 預設完全關閉、零成本。以網址加上 ?perf=1 啟用（會記住，?perf=0 關閉）。
-// 目的是分辨殘餘卡頓的來源：
-//   掉幀時 React 提交耗時高      → 重繪成本（需 memo 化）
-//   提交很快但仍掉幀            → 繪製／版面成本（CSS）
-//   掉幀緊接在儲存之後          → 儲存阻塞主執行緒
-(function() {
-  var P = { on:false, commits:[], janks:[], saves:[], startedAt:0 };
-  window.__LIMU_PERF__ = P;
-  try {
-    if (/[?&]perf=1/.test(location.search)) localStorage.setItem('hw5ren:perfProbe','1');
-    if (/[?&]perf=0/.test(location.search)) localStorage.removeItem('hw5ren:perfProbe');
-    P.on = localStorage.getItem('hw5ren:perfProbe') === '1';
-  } catch(e) {}
-  if (!P.on) return;
-  P.startedAt = Date.now();
-
-  var last = performance.now();
-  function tick(now) {
-    var gap = now - last; last = now;
-    if (gap > 50) {
-      var c = P.commits.length ? P.commits[P.commits.length-1] : null;
-      var v = P.saves.length ? P.saves[P.saves.length-1] : null;
-      P.janks.push({
-        gap: Math.round(gap),
-        commit: (c && (now - c.at) < gap + 32) ? Math.round(c.dur) : 0,
-        save:   (v && (now - v.at) < gap + 32) ? Math.round(v.dur) : 0
-      });
-      if (P.janks.length > 300) P.janks.shift();
-    }
-    requestAnimationFrame(tick);
-  }
-  requestAnimationFrame(tick);
-
-  window.__limuPerfCommit = function(id, phase, actualDuration) {
-    P.commits.push({ at: performance.now(), dur: actualDuration });
-    if (P.commits.length > 400) P.commits.shift();
-  };
-
-  window.limuPerfReport = function() {
-    function stats(arr, pick) {
-      if (!arr.length) return { n:0, max:0, avg:0, p90:0 };
-      var v = arr.map(pick).sort(function(a,b){ return a-b; });
-      var sum = v.reduce(function(a,b){ return a+b; }, 0);
-      return { n:v.length, max:v[v.length-1], avg:Math.round(sum/v.length),
-               p90:v[Math.floor(v.length*0.9)] || 0 };
-    }
-    var mins = Math.max(1, Math.round((Date.now()-P.startedAt)/60000));
-    var c = stats(P.commits, function(x){ return x.dur; });
-    var j = stats(P.janks, function(x){ return x.gap; });
-    var byCommit = P.janks.filter(function(x){ return x.commit >= 16; }).length;
-    var bySave   = P.janks.filter(function(x){ return x.save  >= 16; }).length;
-    var neither  = P.janks.filter(function(x){ return x.commit < 16 && x.save < 16; }).length;
-    var worst = P.janks.slice().sort(function(a,b){ return b.gap-a.gap; }).slice(0,5);
-    var verdict = '資料不足，請多操作一會兒再看';
-    if (P.janks.length >= 5) {
-      if (byCommit >= bySave && byCommit >= neither) verdict = 'React 重繪成本為主 → 需要 memo 化列項';
-      else if (bySave >= neither) verdict = '儲存阻塞為主 → 需再延後或分批寫入';
-      else verdict = '繪製／版面成本為主 → 仍是 CSS 問題';
-    }
-    return [
-      'LIMU 效能診斷（' + mins + ' 分鐘內）',
-      '',
-      '【判定】' + verdict,
-      '',
-      '掉幀次數 ' + j.n + '（>50ms）',
-      '  最長 ' + j.max + 'ms｜平均 ' + j.avg + 'ms｜p90 ' + j.p90 + 'ms',
-      '  伴隨 React 提交 ' + byCommit + ' 次',
-      '  伴隨儲存      ' + bySave + ' 次',
-      '  兩者皆無      ' + neither + ' 次',
-      '',
-      'React 提交 ' + c.n + ' 次',
-      '  最長 ' + c.max + 'ms｜平均 ' + c.avg + 'ms｜p90 ' + c.p90 + 'ms',
-      '',
-      '儲存 ' + P.saves.length + ' 次',
-      '  最長 ' + stats(P.saves, function(x){ return x.dur; }).max + 'ms',
-      '',
-      '最嚴重的 5 次掉幀：',
-      worst.map(function(x, i) {
-        return '  ' + (i+1) + '. ' + x.gap + 'ms（提交 ' + x.commit + 'ms／儲存 ' + x.save + 'ms）';
-      }).join('\n') || '  無',
-      '',
-      '（網址加 ?perf=0 可關閉診斷）'
-    ].join('\n');
-  };
-
-  // 右下角浮動按鈕：點一下顯示報告
-  window.addEventListener('load', function() {
-    try {
-      var b = document.createElement('button');
-      b.textContent = '⏱';
-      b.setAttribute('aria-label', '效能診斷報告');
-      b.style.cssText = 'position:fixed;right:8px;bottom:calc(96px + env(safe-area-inset-bottom,0px));z-index:99999998;width:40px;height:40px;border-radius:20px;border:1px solid rgba(255,255,255,.35);background:rgba(20,10,40,.82);color:#fff;font-size:17px;line-height:1;cursor:pointer';
-      b.onclick = function() { showError(window.limuPerfReport(), '#0a0a1a'); };
-      document.body.appendChild(b);
-    } catch(e) {}
-  });
-})();
-</script>
-
 <script>
 // v20.24：Nebula 動態星點系統已移除。
 // 使用者回報從未察覺星點在流動，而這個整頁 position:fixed 的 canvas
@@ -15536,8 +15604,8 @@ function App() {
   var updateRegistration = null;
   var reloadingForUpdate = false;
   var updateActivationRequested = false;
-  var SW_BUILD_ID = 'limu-teacher-v20-32-20260731';
-  var SW_CACHE_NAME = 'hw-tracker-v20-32';
+  var SW_BUILD_ID = 'limu-teacher-v20-34-20260801';
+  var SW_CACHE_NAME = 'hw-tracker-v20-34';
   var SW_URL = './sw.js?build=' + encodeURIComponent(SW_BUILD_ID);
   var lastUpdateCheck = 0;
   // v20.16：checkBuildConsistency 本來就有 15 秒節流，但 reg.update() 沒有。
