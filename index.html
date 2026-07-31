@@ -1326,8 +1326,11 @@
         .spl-overlay::after {
           content:""; position:absolute; inset:0; z-index:4; pointer-events:none;
           background:
-            linear-gradient(180deg,rgba(2,5,9,.22) 0%,transparent 25%,transparent 58%,rgba(2,6,10,.28) 72%,rgba(2,5,8,.82) 100%),
-            radial-gradient(ellipse at center,transparent 42%,rgba(1,4,7,.3) 100%);
+            /* v20.31：底部原本收在 rgba(2,5,8,.82)，近乎不透明，在本就偏暗的
+               海面上會形成一塊實心黑帶。大幅減弱後改由標題自身的文字陰影
+               維持可讀性，開場即為整頁滿版影像。 */
+            linear-gradient(180deg,rgba(2,5,9,.18) 0%,transparent 22%,transparent 70%,rgba(2,6,10,.14) 86%,rgba(2,5,8,.34) 100%),
+            radial-gradient(ellipse at center,transparent 52%,rgba(1,4,7,.22) 100%);
         }
 
         .spl-img-wrap {
@@ -1392,6 +1395,7 @@
         }
 
         .spl-titles {
+          text-shadow:0 2px 12px rgba(0,0,0,.85),0 1px 3px rgba(0,0,0,.9);
           position:absolute;
           bottom:max(84px,calc(env(safe-area-inset-bottom,0px) + 62px));
           left:18px; right:18px;
@@ -1417,6 +1421,7 @@
           text-shadow:0 1px 8px rgba(0,0,0,.95);
         }
         .spl-status {
+          text-shadow:0 2px 10px rgba(0,0,0,.85),0 1px 3px rgba(0,0,0,.9);
           position:absolute;
           bottom:max(46px,calc(env(safe-area-inset-bottom,0px) + 27px));
           left:0; right:0;
@@ -4575,10 +4580,10 @@ const WEEKDAYS = ["日", "一", "二", "三", "四", "五", "六"];
 const COUNSEL_PERIODS = ["早自習", "第1節", "第2節", "第3節", "第4節", "午休", "第5節", "第6節", "放學後"];
 const COUNSEL_TYPES = ["學習", "行為", "情緒", "人際", "家庭", "其他"];
 const COUNSEL_FOLLOWUP = ["需追蹤", "已處理", "轉介"];
-const APP_VERSION = "20.30.0";
+const APP_VERSION = "20.32.0";
 const APP_BUILD_DATE = "2026-07-31";
-const APP_BUILD_ID = "limu-teacher-v20-30-20260731";
-const APP_CACHE_NAME = "hw-tracker-v20-30";
+const APP_BUILD_ID = "limu-teacher-v20-32-20260731";
+const APP_CACHE_NAME = "hw-tracker-v20-32";
 window.__LIMU_BUILD__ = Object.freeze({
     appVersion: APP_VERSION,
     buildDate: APP_BUILD_DATE,
@@ -6063,10 +6068,16 @@ var _lsBackupQueue = {};
 var _lsBackupTimer = null;
 function flushLsBackup() {
     _lsBackupTimer = null;
+    var _t0 = (window.__LIMU_PERF__ && window.__LIMU_PERF__.on) ? performance.now() : 0;
     var keys = Object.keys(_lsBackupQueue);
     for (var i = 0; i < keys.length; i++) {
         try { _sl.set(keys[i], _lsBackupQueue[keys[i]]); } catch(e) {}
         delete _lsBackupQueue[keys[i]];
+    }
+    if (_t0) {
+        var P = window.__LIMU_PERF__;
+        P.saves.push({ at: performance.now(), dur: performance.now() - _t0 });
+        if (P.saves.length > 200) P.saves.shift();
     }
 }
 try {
@@ -6080,7 +6091,13 @@ try {
 async function saveDay(dateStr, rows, attendance, exempt, attendancePeriod, slips) {
     var pfx = classPrefix();
     var storageKey = pfx+"day:"+dateStr;
+    var _s0 = (window.__LIMU_PERF__ && window.__LIMU_PERF__.on) ? performance.now() : 0;
     const json = JSON.stringify(ser(rows, attendance, exempt, attendancePeriod, slips));
+    if (_s0) {
+        var _P = window.__LIMU_PERF__;
+        _P.saves.push({ at: performance.now(), dur: performance.now() - _s0 });
+        if (_P.saves.length > 200) _P.saves.shift();
+    }
     // 1. IndexedDB（主要）
     let idbOk = false;
     try {
@@ -15288,7 +15305,12 @@ function App() {
 }
 
     debugStep('RENDER START');
-    ReactDOM.render(React.createElement(App), document.getElementById('root'));
+    // v20.32：診斷開啟時才包 Profiler，關閉時完全不增加任何成本。
+    var _rootEl = React.createElement(App);
+    if (window.__LIMU_PERF__ && window.__LIMU_PERF__.on && React.Profiler) {
+        _rootEl = React.createElement(React.Profiler, { id:'limu', onRender:window.__limuPerfCommit }, _rootEl);
+    }
+    ReactDOM.render(_rootEl, document.getElementById('root'));
     // 立刻設 _appReady，不等 useEffect
     try { window._appReady = true; } catch(ex) {}
     debugStep('RENDER COMPLETE (sync)');
@@ -15327,6 +15349,107 @@ function App() {
   waitForReact(20); // 等最多 10 秒（20 × 500ms）
 });
 </script>
+<script>
+// ── v20.32：內建效能診斷探針 ─────────────────────────────────────────
+// 預設完全關閉、零成本。以網址加上 ?perf=1 啟用（會記住，?perf=0 關閉）。
+// 目的是分辨殘餘卡頓的來源：
+//   掉幀時 React 提交耗時高      → 重繪成本（需 memo 化）
+//   提交很快但仍掉幀            → 繪製／版面成本（CSS）
+//   掉幀緊接在儲存之後          → 儲存阻塞主執行緒
+(function() {
+  var P = { on:false, commits:[], janks:[], saves:[], startedAt:0 };
+  window.__LIMU_PERF__ = P;
+  try {
+    if (/[?&]perf=1/.test(location.search)) localStorage.setItem('hw5ren:perfProbe','1');
+    if (/[?&]perf=0/.test(location.search)) localStorage.removeItem('hw5ren:perfProbe');
+    P.on = localStorage.getItem('hw5ren:perfProbe') === '1';
+  } catch(e) {}
+  if (!P.on) return;
+  P.startedAt = Date.now();
+
+  var last = performance.now();
+  function tick(now) {
+    var gap = now - last; last = now;
+    if (gap > 50) {
+      var c = P.commits.length ? P.commits[P.commits.length-1] : null;
+      var v = P.saves.length ? P.saves[P.saves.length-1] : null;
+      P.janks.push({
+        gap: Math.round(gap),
+        commit: (c && (now - c.at) < gap + 32) ? Math.round(c.dur) : 0,
+        save:   (v && (now - v.at) < gap + 32) ? Math.round(v.dur) : 0
+      });
+      if (P.janks.length > 300) P.janks.shift();
+    }
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+
+  window.__limuPerfCommit = function(id, phase, actualDuration) {
+    P.commits.push({ at: performance.now(), dur: actualDuration });
+    if (P.commits.length > 400) P.commits.shift();
+  };
+
+  window.limuPerfReport = function() {
+    function stats(arr, pick) {
+      if (!arr.length) return { n:0, max:0, avg:0, p90:0 };
+      var v = arr.map(pick).sort(function(a,b){ return a-b; });
+      var sum = v.reduce(function(a,b){ return a+b; }, 0);
+      return { n:v.length, max:v[v.length-1], avg:Math.round(sum/v.length),
+               p90:v[Math.floor(v.length*0.9)] || 0 };
+    }
+    var mins = Math.max(1, Math.round((Date.now()-P.startedAt)/60000));
+    var c = stats(P.commits, function(x){ return x.dur; });
+    var j = stats(P.janks, function(x){ return x.gap; });
+    var byCommit = P.janks.filter(function(x){ return x.commit >= 16; }).length;
+    var bySave   = P.janks.filter(function(x){ return x.save  >= 16; }).length;
+    var neither  = P.janks.filter(function(x){ return x.commit < 16 && x.save < 16; }).length;
+    var worst = P.janks.slice().sort(function(a,b){ return b.gap-a.gap; }).slice(0,5);
+    var verdict = '資料不足，請多操作一會兒再看';
+    if (P.janks.length >= 5) {
+      if (byCommit >= bySave && byCommit >= neither) verdict = 'React 重繪成本為主 → 需要 memo 化列項';
+      else if (bySave >= neither) verdict = '儲存阻塞為主 → 需再延後或分批寫入';
+      else verdict = '繪製／版面成本為主 → 仍是 CSS 問題';
+    }
+    return [
+      'LIMU 效能診斷（' + mins + ' 分鐘內）',
+      '',
+      '【判定】' + verdict,
+      '',
+      '掉幀次數 ' + j.n + '（>50ms）',
+      '  最長 ' + j.max + 'ms｜平均 ' + j.avg + 'ms｜p90 ' + j.p90 + 'ms',
+      '  伴隨 React 提交 ' + byCommit + ' 次',
+      '  伴隨儲存      ' + bySave + ' 次',
+      '  兩者皆無      ' + neither + ' 次',
+      '',
+      'React 提交 ' + c.n + ' 次',
+      '  最長 ' + c.max + 'ms｜平均 ' + c.avg + 'ms｜p90 ' + c.p90 + 'ms',
+      '',
+      '儲存 ' + P.saves.length + ' 次',
+      '  最長 ' + stats(P.saves, function(x){ return x.dur; }).max + 'ms',
+      '',
+      '最嚴重的 5 次掉幀：',
+      worst.map(function(x, i) {
+        return '  ' + (i+1) + '. ' + x.gap + 'ms（提交 ' + x.commit + 'ms／儲存 ' + x.save + 'ms）';
+      }).join('\n') || '  無',
+      '',
+      '（網址加 ?perf=0 可關閉診斷）'
+    ].join('\n');
+  };
+
+  // 右下角浮動按鈕：點一下顯示報告
+  window.addEventListener('load', function() {
+    try {
+      var b = document.createElement('button');
+      b.textContent = '⏱';
+      b.setAttribute('aria-label', '效能診斷報告');
+      b.style.cssText = 'position:fixed;right:8px;bottom:calc(96px + env(safe-area-inset-bottom,0px));z-index:99999998;width:40px;height:40px;border-radius:20px;border:1px solid rgba(255,255,255,.35);background:rgba(20,10,40,.82);color:#fff;font-size:17px;line-height:1;cursor:pointer';
+      b.onclick = function() { showError(window.limuPerfReport(), '#0a0a1a'); };
+      document.body.appendChild(b);
+    } catch(e) {}
+  });
+})();
+</script>
+
 <script>
 // v20.24：Nebula 動態星點系統已移除。
 // 使用者回報從未察覺星點在流動，而這個整頁 position:fixed 的 canvas
@@ -15413,8 +15536,8 @@ function App() {
   var updateRegistration = null;
   var reloadingForUpdate = false;
   var updateActivationRequested = false;
-  var SW_BUILD_ID = 'limu-teacher-v20-30-20260731';
-  var SW_CACHE_NAME = 'hw-tracker-v20-30';
+  var SW_BUILD_ID = 'limu-teacher-v20-32-20260731';
+  var SW_CACHE_NAME = 'hw-tracker-v20-32';
   var SW_URL = './sw.js?build=' + encodeURIComponent(SW_BUILD_ID);
   var lastUpdateCheck = 0;
   // v20.16：checkBuildConsistency 本來就有 15 秒節流，但 reg.update() 沒有。
