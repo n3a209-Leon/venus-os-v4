@@ -27,19 +27,20 @@
 
         /* Google Fonts loaded via <link> below for Safari compatibility */
         *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-        /* PWA standalone 模式 touch 修正 */
-        html{-webkit-text-size-adjust:100%;touch-action:manipulation}
-        body{-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+        /* iPhone 使用 Safari 原生手勢判定；不在整頁強制 touch-action。 */
+        html{-webkit-text-size-adjust:100%;touch-action:auto}
+        body{-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;touch-action:auto}
         button,td,[class*="btn"],[class*="cell"],[class*="row"],[class*="nb"],[class*="gc"],[class*="hwc"]{
-          touch-action:manipulation;
           -webkit-touch-callout:none;
           cursor:pointer;
         }
         /* PWA safe area (iPhone notch/home indicator)
            底部安全區由固定導覽／底部面板自行吸收，避免 body 再留一層空白。 */
-        :root{--safe-bottom:env(safe-area-inset-bottom,0px)}
-        body{padding-top:env(safe-area-inset-top,0px);padding-bottom:0}
-        header{padding-top:max(14px,env(safe-area-inset-top))}
+        :root{
+          --safe-top:env(safe-area-inset-top,0px);
+          --safe-bottom:env(safe-area-inset-bottom,0px);
+        }
+        body{padding:var(--safe-top) 0 0}
         body,html{background:#f0f4f8;min-height:100%;-webkit-tap-highlight-color:transparent}
         .app{min-height:100vh;min-height:100dvh;background:#f0f4f8;font-family:'Noto Sans TC',sans-serif;color:#1a2332;transition:background .3s,color .3s}
 
@@ -3513,6 +3514,57 @@
           --card-chip:rgba(0,204,85,.10); --card-accent:rgba(0,204,85,.28);
           --card-line:rgba(0,204,85,.22);
         }
+
+        /* v20.36：iPhone 原生捲動層。
+           1. 頂部安全區由 body 實際佔位，不把工作列畫進狀態列。
+           2. 手機不使用會在捲動時反覆合成的全螢幕 fixed 主題層與 sticky 工作列。
+           3. 長頁直接採一般排版，避免大面積 paint containment 造成分段光柵化。 */
+        @media(max-width:640px){
+          html,body{touch-action:auto;overscroll-behavior-y:auto}
+          body{padding-top:var(--safe-top)!important}
+          .app{min-height:calc(100dvh - var(--safe-top))}
+
+          .class-context-bar,.settings-tabbar{
+            position:relative!important;
+            top:auto!important;
+          }
+          .calendar,.month-summary,.att-panel,.exempt-panel,.slip-panel,.archive-wrap>section{
+            contain:none!important;
+            content-visibility:visible!important;
+            contain-intrinsic-size:none!important;
+          }
+
+          /* 將星雲背景合併成隨頁面移動的單一背景，保留星點與藍紫層次。 */
+          .app[data-theme="nebula"]{
+            position:relative;
+            background:
+              radial-gradient(circle at 13px 17px,rgba(225,215,255,.32) 0 1px,transparent 1.5px) 0 0/73px 83px,
+              radial-gradient(circle at 37px 51px,rgba(188,168,255,.22) 0 1px,transparent 1.5px) 0 0/119px 131px,
+              radial-gradient(ellipse 80% 40% at 18% 16%,rgba(80,40,180,.25),transparent 66%),
+              radial-gradient(ellipse 70% 45% at 82% 68%,rgba(20,80,200,.20),transparent 64%),
+              linear-gradient(135deg,#04050f 0%,#070a1a 42%,#060818 72%,#050410 100%)!important;
+          }
+          .app[data-theme="nebula"]::before,
+          .app[data-theme="nebula"]::after,
+          .app[data-theme="nerv"]::before,
+          .app[data-theme="odyssey"]::before{display:none!important}
+
+          /* 主題裝飾圖仍保留，但移除長頁濾鏡／混合與無限動畫。 */
+          .app[data-theme="mucha"] main::before,
+          .app[data-theme="nebula"] main::before{
+            filter:none!important;
+            mix-blend-mode:normal!important;
+          }
+          .app[data-theme="nebula"] header,
+          .app[data-theme="nerv"],
+          .app[data-theme="nerv"] .nerv-unit-kanji,
+          .app[data-theme="nerv"] .cal-cell.is-today .cal-day,
+          .app .nb.sub,.app .nb.done,.app .nb.none-fired,
+          .app .all-btn.active-none,.app .nb-absent-glow{
+            animation:none!important;
+          }
+          .mobile-dock{transform:translate3d(0,0,0)}
+        }
 </style>
 <script id="limu-external-art-map">
 (function(){
@@ -3858,7 +3910,7 @@
   };
   </script>
 </head>
-<body style="background:#07040f;margin:0;padding:0;">
+<body style="background:#07040f;margin:0;">
 <div id="safari-debug" style="position:fixed;top:0;left:0;right:0;z-index:9999999;background:#c00;color:#fff;padding:8px 12px;font-size:14px;font-family:monospace;letter-spacing:1px;display:none">HTML LOADED</div>
 <div id="error-overlay" style="display:none;position:fixed;inset:0;z-index:99999999;padding:20px;font-size:14px;white-space:pre-wrap;overflow:auto;margin:0;font-family:monospace"></div>
 <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;font-size:18px;color:#1e3a5f;font-family:sans-serif;background:#f0f4ff">正在載入...</div></div>
@@ -3956,7 +4008,8 @@ window.addEventListener('pageshow', function(e) {
   try { window._writeLog('step', 'pageshow persisted:' + e.persisted); } catch(e) {}
 });
 
-// v20.35：滑動優先排程器。只記錄時間，不在滑動時改 DOM／class／樣式。
+// v20.36：滑動優先排程器。手指按住期間不需要逐幀 touchmove 回呼；
+// touchstart/end 管手勢，window scroll 管慣性，只記時間且不修改 DOM。
 // 所有監聽器都是 passive，不攔截 Safari 原生捲動。
 (function() {
   var touchActive = false;
@@ -3994,11 +4047,10 @@ window.addEventListener('pageshow', function(e) {
     };
     return token;
   }
-  document.addEventListener('touchstart', function(){ touchActive = true; setBusy(); }, { passive:true, capture:true });
-  document.addEventListener('touchmove', setBusy, { passive:true, capture:true });
-  document.addEventListener('touchend', function(){ touchActive = false; setBusy(); }, { passive:true, capture:true });
-  document.addEventListener('touchcancel', function(){ touchActive = false; setBusy(); }, { passive:true, capture:true });
-  document.addEventListener('scroll', setBusy, { passive:true, capture:true });
+  document.addEventListener('touchstart', function(){ touchActive = true; setBusy(); }, { passive:true });
+  document.addEventListener('touchend', function(){ touchActive = false; setBusy(); }, { passive:true });
+  document.addEventListener('touchcancel', function(){ touchActive = false; setBusy(); }, { passive:true });
+  window.addEventListener('scroll', setBusy, { passive:true });
   window.LIMUInteraction = Object.freeze({ isBusy:isBusy, runWhenIdle:runWhenIdle });
 })();
 try {
@@ -4689,10 +4741,10 @@ const WEEKDAYS = ["日", "一", "二", "三", "四", "五", "六"];
 const COUNSEL_PERIODS = ["早自習", "第1節", "第2節", "第3節", "第4節", "午休", "第5節", "第6節", "放學後"];
 const COUNSEL_TYPES = ["學習", "行為", "情緒", "人際", "家庭", "其他"];
 const COUNSEL_FOLLOWUP = ["需追蹤", "已處理", "轉介"];
-const APP_VERSION = "20.35.0";
+const APP_VERSION = "20.36.0";
 const APP_BUILD_DATE = "2026-08-01";
-const APP_BUILD_ID = "limu-teacher-v20-35-20260801";
-const APP_CACHE_NAME = "hw-tracker-v20-35";
+const APP_BUILD_ID = "limu-teacher-v20-36-20260801";
+const APP_CACHE_NAME = "hw-tracker-v20-36";
 window.__LIMU_BUILD__ = Object.freeze({
     appVersion: APP_VERSION,
     buildDate: APP_BUILD_DATE,
@@ -15579,8 +15631,8 @@ function App() {
   var updateRegistration = null;
   var reloadingForUpdate = false;
   var updateActivationRequested = false;
-  var SW_BUILD_ID = 'limu-teacher-v20-35-20260801';
-  var SW_CACHE_NAME = 'hw-tracker-v20-35';
+  var SW_BUILD_ID = 'limu-teacher-v20-36-20260801';
+  var SW_CACHE_NAME = 'hw-tracker-v20-36';
   var SW_URL = './sw.js?build=' + encodeURIComponent(SW_BUILD_ID);
   var lastUpdateCheck = 0;
   // v20.16：checkBuildConsistency 本來就有 15 秒節流，但 reg.update() 沒有。
