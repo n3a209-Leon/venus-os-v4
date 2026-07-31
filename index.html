@@ -2066,18 +2066,23 @@
             display: flex; align-items: flex-end; justify-content: center;
             padding-bottom: 0;
         }
+        /* v20.21：整組 wp-input-* 原本是為深色底寫死的（box #1e1b3a、field 白字），
+           被淺色主題覆寫外框後就變成白框裡嵌黑格。改為統一走 v20.20 的卡片色票。 */
         .wp-input-box {
-            background: #1e1b3a; border-radius: 18px 18px 0 0;
-            width: 100%; max-width: 480px; padding: 20px 16px max(12px,var(--safe-bottom));
+            background: var(--card-bg, #1e1b3a); color: var(--card-fg, #fff);
+            border-radius: 18px 18px 0 0;
+            width: 100%; max-width: 480px;
+            padding: 20px 16px calc(14px + var(--safe-bottom));
             box-shadow: 0 -4px 30px rgba(0,0,0,.5);
             display: flex; flex-direction: column; gap: 10px;
         }
-        .wp-input-title { font-size: 15px; font-weight: 700; color: #ce93d8; }
+        .wp-input-title { font-size: 15px; font-weight: 700; color: inherit; opacity: .85; }
         .wp-type-row { display: flex; gap: 8px; }
         .wp-type-btn {
             flex: 1; padding: 9px; border-radius: 10px;
-            border: 1px solid rgba(255,255,255,.12); background: rgba(255,255,255,.05);
-            color: rgba(255,255,255,.5); font-size: 13px; font-weight: 600; cursor: pointer;
+            border: 1px solid var(--card-line, rgba(255,255,255,.12));
+            background: var(--card-chip, rgba(255,255,255,.05));
+            color: inherit; opacity: .72; font-size: 13px; font-weight: 600; cursor: pointer;
             transition: filter .1s; -webkit-tap-highlight-color: rgba(255,220,0,.5);
         }
         .wp-type-btn:active { filter: brightness(1.8) drop-shadow(0 0 6px #ffd700); }
@@ -2086,17 +2091,19 @@
         .wp-preset-row { display: flex; flex-wrap: wrap; gap: 6px; }
         .wp-preset-tag {
             padding: 5px 10px; border-radius: 20px;
-            background: rgba(103,58,183,.3); border: 1px solid rgba(103,58,183,.4);
-            color: #ce93d8; font-size: 12px; cursor: pointer;
+            background: var(--card-chip, rgba(103,58,183,.3));
+            border: 1px solid var(--card-line, rgba(103,58,183,.4));
+            color: inherit; font-size: 12px; cursor: pointer;
             transition: filter .1s; -webkit-tap-highlight-color: rgba(255,220,0,.5);
         }
         .wp-preset-tag:active { filter: brightness(1.8) drop-shadow(0 0 6px #ffd700); }
         .wp-input-field {
             width: 100%; padding: 10px 12px; border-radius: 10px; box-sizing: border-box;
-            background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.12);
-            color: #fff; font-size: 14px; outline: none;
+            background: var(--card-chip, rgba(255,255,255,.08));
+            border: 1px solid var(--card-line, rgba(255,255,255,.12));
+            color: inherit; font-size: 14px; outline: none;
         }
-        .wp-input-field::placeholder { color: rgba(255,255,255,.3); }
+        .wp-input-field::placeholder { color: currentColor; opacity: .45; }
         .wp-input-btns { display: flex; gap: 8px; margin-top: 2px; }
         .wp-input-btn {
             flex: 1; padding: 11px; border-radius: 10px; border: none;
@@ -4577,10 +4584,10 @@ const WEEKDAYS = ["日", "一", "二", "三", "四", "五", "六"];
 const COUNSEL_PERIODS = ["早自習", "第1節", "第2節", "第3節", "第4節", "午休", "第5節", "第6節", "放學後"];
 const COUNSEL_TYPES = ["學習", "行為", "情緒", "人際", "家庭", "其他"];
 const COUNSEL_FOLLOWUP = ["需追蹤", "已處理", "轉介"];
-const APP_VERSION = "20.20.0";
-const APP_BUILD_DATE = "2026-07-30";
-const APP_BUILD_ID = "limu-teacher-v20-20-20260730";
-const APP_CACHE_NAME = "hw-tracker-v20-20";
+const APP_VERSION = "20.22.0";
+const APP_BUILD_DATE = "2026-07-31";
+const APP_BUILD_ID = "limu-teacher-v20-22-20260731";
+const APP_CACHE_NAME = "hw-tracker-v20-22";
 window.__LIMU_BUILD__ = Object.freeze({
     appVersion: APP_VERSION,
     buildDate: APP_BUILD_DATE,
@@ -4989,6 +4996,12 @@ function detectSemesterEnds(calendar) {
     return out;
 }
 // ── 個人清單雲端同步：聯集合併，避免任一端的新增被覆蓋掉 ──────────────
+// v20.22：幹部職稱預設清單。儲存於 hw5ren:officerPresets，
+// 使用者可自行新增/刪除；清空後會重新回到這份預設。
+var DEFAULT_OFFICER_PRESETS = [
+    '班長', '副班長', '風紀股長', '體育股長', '衛生股長', '資訊股長', '學藝股長',
+    '東路隊長', '西路隊長', '外掃區長', '內掃區長', '機動隊長-服務股長', '機動隊員'
+];
 // 字串清單（自訂作業、幹部職稱、回條名稱、提醒歷史）
 function mergeNameList(remote, local, cap) {
     var out = [], seen = {};
@@ -6688,7 +6701,12 @@ function ArchiveView({ idbKeys, idbGet, idbSet, groups, schoolYear, className, s
         semEnd2: _sl.get('hw5ren:semEnd2') || '',
         schoolCalendar: safeJSON(_sl.get('hw5ren:schoolCal:' + activeClassId) || _sl.get('hw5ren:schoolCal') || '{}', {}),
         schoolEvents: normalizeSchoolEventStore(safeJSON(_sl.get('hw5ren:schoolEvents:' + activeClassId) || '{}', {})),
-        officerPresets: safeJSON(_sl.get('hw5ren:officerPresets') || '[]', []),
+        officerPresets: (function(){
+            var stored = safeJSON(_sl.get('hw5ren:officerPresets') || '[]', []);
+            // v20.22：舊版預設為空陣列，新班級一個快速選項都沒有。
+            // 這裡提供一份常用職稱作為預設，使用者仍可自由新增/刪除。
+            return (Array.isArray(stored) && stored.length) ? stored : DEFAULT_OFFICER_PRESETS.slice();
+        })(),
         slipPresets: safeJSON(_sl.get('hw5ren:slipPresets') || '[]', []),
         customHW: safeJSON(_sl.get('hw5ren:customHW') || '[]', []),
         recentHW: safeJSON(_sl.get('hw5ren:recentHW') || '[]', []),
@@ -7947,7 +7965,7 @@ function SettingsView({ groups, saveGroups, groupVersions, saveGroupVersions, sa
                                     }, style:{ background:"none", border:"none", color:(nerv?"rgba(255,102,0,.4)":"#ce93d8"), cursor:"pointer", fontSize:14, padding:"0 2px", lineHeight:1 } }, "\u00D7"));
                         })),
                     React.createElement("div", { style:{ display:"flex", gap:6, marginBottom:14 } },
-                        React.createElement("input", { style:{ flex:1, padding:"6px 10px", border:"1px solid #ce93d8", borderRadius:10, fontSize:12, fontFamily:"inherit", outline:"none" },
+                        React.createElement("input", { style:{ flex:1, padding:"6px 10px", border:"1px solid #ce93d8", borderRadius:10, fontSize:12, fontFamily:"inherit", outline:"none", background:(nerv?"#0f1a0f":"#fff"), color:(nerv?"#00ff66":"#1e3a5f") },
                             placeholder:"\u65B0\u589E\u5FEB\u901F\u9078\u9805\u2026", value:officerPresetInput,
                             onChange:function(e){ setOfficerPresetInput(e.target.value); },
                             onKeyDown:function(e){ if(e.key==='Enter' && officerPresetInput.trim()){
@@ -7957,10 +7975,15 @@ function SettingsView({ groups, saveGroups, groupVersions, saveGroupVersions, sa
                         React.createElement("button", { onClick:function(){ if(!officerPresetInput.trim()) return;
                                 var next=[...officerPresets, officerPresetInput.trim()];
                                 setOfficerPresets(next); setOfficerPresetInput('');
-                            }, style:{ padding:"6px 12px", border:"none", borderRadius:10, background:(nerv?"#ff8844":"#1e3a5f"), color:"#fff", cursor:"pointer", fontFamily:"inherit", fontWeight:700, fontSize:12 } }, "+ \u52A0\u5165")),
+                            }, style:{ padding:"6px 12px", border:"none", borderRadius:10, background:(nerv?"#ff8844":"#1e3a5f"), color:"#fff", cursor:"pointer", fontFamily:"inherit", fontWeight:700, fontSize:12 } }, "+ \u52A0\u5165"),
+                        React.createElement("button", { onClick:function(){
+                                if(!window.confirm('將快速選項重設為預設的 ' + DEFAULT_OFFICER_PRESETS.length + ' 個常用職稱？\n目前已新增的自訂選項會被取代（已指派的幹部名單不受影響）。')) return;
+                                setOfficerPresets(DEFAULT_OFFICER_PRESETS.slice()); setOfficerPresetInput('');
+                            }, title:"重設為預設職稱", 'aria-label':"重設為預設職稱",
+                            style:{ padding:"6px 10px", border:"1px solid #ce93d8", borderRadius:10, background:"transparent", color:(nerv?"#ff8844":"#1e3a5f"), cursor:"pointer", fontFamily:"inherit", fontWeight:600, fontSize:12, whiteSpace:"nowrap" } }, "\u21BA \u91CD\u8A2D")),
                     React.createElement("div", { style:{ borderTop:"1px solid #f0e6fa", paddingTop:12, marginBottom:12 } },
                         React.createElement("div", { style:{ fontSize:12, color:(nerv?"rgba(255,102,0,.6)":"#b388c9"), marginBottom:8, fontWeight:600 } }, "\u8077\u4F4D\u540D\u7A31"),
-                        React.createElement("input", { style:{ width:"100%", padding:"10px 12px", border:"1.5px solid #ce93d8", borderRadius:10, fontSize:14, boxSizing:"border-box", fontFamily:"inherit", outline:"none", marginBottom:10 },
+                        React.createElement("input", { style:{ width:"100%", padding:"10px 12px", border:"1.5px solid #ce93d8", borderRadius:10, fontSize:14, boxSizing:"border-box", fontFamily:"inherit", outline:"none", marginBottom:10, background:(nerv?"#0f1a0f":"#fff"), color:(nerv?"#00ff66":"#1e3a5f") },
                             placeholder:"\u8F38\u5165\u6216\u9EDE\u9078\u4E0A\u65B9\u5FEB\u901F\u9078\u9805\u2026", value:officerRoleInput,
                             onChange:function(e){ setOfficerRoleInput(e.target.value); } }),
                         React.createElement("div", { style:{ fontSize:12, color:(nerv?"rgba(255,102,0,.6)":"#b388c9"), marginBottom:8, fontWeight:600 } }, "\u5EA7\u865F"),
@@ -8150,7 +8173,8 @@ function App() {
             return saved ? JSON.parse(saved) : { "1": [], "2": [] };
         } catch(e) { return { "1": [], "2": [] }; }
     });
-    const DEFAULT_OFFICER_PRESETS = ['\u73ED\u9577','\u526F\u73ED\u9577','\u5B78\u85DD\u80A1\u9577','\u751F\u6D3B\u80A1\u9577','\u885B\u751F\u80A1\u9577','\u9AD4\u80B2\u80A1\u9577','\u5996\u4E50\u80A1\u9577','\u7C9F\u9577'];
+    // v20.22：原本此處另有一份寫死的預設（含錯字「妖乐股長」「粟長」），
+    // 與外層 DEFAULT_OFFICER_PRESETS 重複且內容不同。已移除，統一使用單一來源。
     const [officerPresets, setOfficerPresets] = useState(function(){ try{ return JSON.parse(safeGet('hw5ren:officerPresets')||'null')||DEFAULT_OFFICER_PRESETS; }catch(e){ return DEFAULT_OFFICER_PRESETS; } });
     // 學校行事曆
     const [schoolCalendar, setSchoolCalendar] = useState(() => {
@@ -15464,8 +15488,8 @@ function App() {
   var updateRegistration = null;
   var reloadingForUpdate = false;
   var updateActivationRequested = false;
-  var SW_BUILD_ID = 'limu-teacher-v20-20-20260730';
-  var SW_CACHE_NAME = 'hw-tracker-v20-20';
+  var SW_BUILD_ID = 'limu-teacher-v20-22-20260731';
+  var SW_CACHE_NAME = 'hw-tracker-v20-22';
   var SW_URL = './sw.js?build=' + encodeURIComponent(SW_BUILD_ID);
   var lastUpdateCheck = 0;
   // v20.16：checkBuildConsistency 本來就有 15 秒節流，但 reg.update() 沒有。
