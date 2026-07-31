@@ -4575,10 +4575,10 @@ const WEEKDAYS = ["日", "一", "二", "三", "四", "五", "六"];
 const COUNSEL_PERIODS = ["早自習", "第1節", "第2節", "第3節", "第4節", "午休", "第5節", "第6節", "放學後"];
 const COUNSEL_TYPES = ["學習", "行為", "情緒", "人際", "家庭", "其他"];
 const COUNSEL_FOLLOWUP = ["需追蹤", "已處理", "轉介"];
-const APP_VERSION = "20.29.0";
+const APP_VERSION = "20.30.0";
 const APP_BUILD_DATE = "2026-07-31";
-const APP_BUILD_ID = "limu-teacher-v20-29-20260731";
-const APP_CACHE_NAME = "hw-tracker-v20-29";
+const APP_BUILD_ID = "limu-teacher-v20-30-20260731";
+const APP_CACHE_NAME = "hw-tracker-v20-30";
 window.__LIMU_BUILD__ = Object.freeze({
     appVersion: APP_VERSION,
     buildDate: APP_BUILD_DATE,
@@ -7888,7 +7888,7 @@ function SettingsView({ groups, saveGroups, groupVersions, saveGroupVersions, sa
                     })),
                 React.createElement("p", { style:{ fontSize:11, color:"#aab8cc", marginTop:8 } }, "\u25CF \u7DA0\u9EDE\uFF1D\u76EE\u524D\u751F\u6548\u4E2D\u3002\u4E0B\u65B9\u6B63\u5728\u7DE8\u8F2F\uFF1A\u7B2C" + (sortedVersions.slice().reverse().findIndex(function(x){return x.verId===selectedVerId;})+1) + "\u6B21\uFF08\u751F\u6548\u65E5\uFF1A" + getVersionById(selectedVerId).effectiveDate + "\uFF09"),
                 sortedVersions.length > 1 && React.createElement("button", { onClick: function(){ deleteVersion(selectedVerId); }, style:{ marginTop:10, padding:"6px 14px", border:"1px solid #e53935", borderRadius:8, background:"rgba(229,57,53,.08)", color:"#e53935", cursor:"pointer", fontSize:12, fontWeight:700 } }, "\u00D7 \u522A\u9664\u6B64\u7248\u672C")),
-            newVerModal && ReactDOM.createPortal(React.createElement("div", { style:{ position:"fixed", inset:0, background:"rgba(0,0,0,.55)", display:"flex", alignItems:"flex-start", justifyContent:"center", zIndex:9000, overflowY:"auto", WebkitOverflowScrolling:"touch",
+            newVerModal && ReactDOM.createPortal(React.createElement("div", { style:{ position:"fixed", inset:0, background:"rgba(0,0,0,.55)", display:"flex", alignItems:"flex-start", justifyContent:"center", zIndex:99000, overflowY:"auto", WebkitOverflowScrolling:"touch",
                     /* v20.27：改由遮罩層自身捲動並置頂對齊。原本 alignItems:"center"
                        搭配內層 maxHeight:80vh，內容變長時跳窗會沉到畫面下半，
                        底部按鈕被導覽列遮住。 */
@@ -7975,7 +7975,12 @@ function SettingsView({ groups, saveGroups, groupVersions, saveGroupVersions, sa
                                     }, style:{ background:"none", border:"none", color:"#e53935", cursor:"pointer", fontSize:13, fontWeight:700 } }, "\u00D7 \u522A\u9664"));
                         })
                     )),
-            officerModal && React.createElement("div", { style:{ position:"fixed", inset:0, background:"rgba(0,0,0,.55)", display:"flex", alignItems:"flex-start", justifyContent:"center", zIndex:9000, overflowY:"auto", WebkitOverflowScrolling:"touch",
+            officerModal && ReactDOM.createPortal(
+                /* v20.30：改用 Portal 掛到 document.body。
+                   跳窗的 position:fixed 原本被某個祖先元素建立的 containing block
+                   限制住，導致頂端落在內容區起點而非螢幕頂端。Portal 讓它脫離
+                   整個 App 的層級結構，不論祖先有何屬性都能覆蓋整個畫面。 */
+                React.createElement("div", { style:{ position:"fixed", inset:0, background:"rgba(0,0,0,.55)", display:"flex", alignItems:"flex-start", justifyContent:"center", zIndex:9000, overflowY:"auto", WebkitOverflowScrolling:"touch",
                     /* v20.27：改由遮罩層自身捲動並置頂對齊。原本 alignItems:"center"
                        搭配內層 maxHeight:80vh，內容變長時跳窗會沉到畫面下半，
                        底部按鈕被導覽列遮住。 */
@@ -8052,7 +8057,8 @@ function SettingsView({ groups, saveGroups, groupVersions, saveGroupVersions, sa
                                 saveOfficers(next);
                                 setOfficerModal(false); setOfficerRoleInput(''); setOfficerSeatInput('');
                             } }, "\u78BA\u8A8D\u65B0\u589E")))
-            )
+            ),
+                document.body)
         ),
         React.createElement("div", { style:{padding:"10px 12px",margin:"4px 0 18px",borderRadius:10,textAlign:"center",fontSize:11,lineHeight:1.7,color:nerv?"rgba(255,136,68,.65)":"#8291a3",background:nerv?"rgba(255,102,0,.04)":"rgba(30,58,95,.04)"} },
             "LIMU v" + APP_VERSION + "　建置 " + APP_BUILD_DATE,
@@ -15407,8 +15413,8 @@ function App() {
   var updateRegistration = null;
   var reloadingForUpdate = false;
   var updateActivationRequested = false;
-  var SW_BUILD_ID = 'limu-teacher-v20-29-20260731';
-  var SW_CACHE_NAME = 'hw-tracker-v20-29';
+  var SW_BUILD_ID = 'limu-teacher-v20-30-20260731';
+  var SW_CACHE_NAME = 'hw-tracker-v20-30';
   var SW_URL = './sw.js?build=' + encodeURIComponent(SW_BUILD_ID);
   var lastUpdateCheck = 0;
   // v20.16：checkBuildConsistency 本來就有 15 秒節流，但 reg.update() 沒有。
