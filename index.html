@@ -1492,7 +1492,8 @@
           display:flex; align-items:center; justify-content:center;
           transition:background .15s;
           -webkit-tap-highlight-color:transparent;
-          touch-action:none;
+          /* 垂直拖曳永遠交給 Safari 原生捲動；點按／長按仍由按鈕處理。 */
+          touch-action:pan-y;
         }
         .day-nav-arrow:active { background:rgba(255,255,255,.18); }
         [data-theme="nerv"] .day-nav-arrow {
@@ -2230,15 +2231,8 @@
         html.performance-paused *,html.performance-paused *::before,html.performance-paused *::after{
           animation-play-state:paused!important;
         }
-        /* v20.33：手指拖曳與慣性捲動時暫停純裝飾動畫，將合成資源留給原生捲動。 */
-        html.limu-user-scrolling *,
-        html.limu-user-scrolling *::before,
-        html.limu-user-scrolling *::after{animation-play-state:paused!important}
-        html.limu-user-scrolling .app[data-theme="mucha"] main::before,
-        html.limu-user-scrolling .app[data-theme="nebula"] main::before,
-        html.limu-user-scrolling .app[data-theme="mucha"] .calendar::after,
-        html.limu-user-scrolling .app[data-theme="mucha"] .month-summary::after,
-        html.limu-user-scrolling .app[data-theme="nebula"] .calendar::after{filter:none!important}
+        /* v20.35：不可在 touchstart／scroll 時切換套用到全頁的樣式。
+           Safari 會因此重新計算所有元素與偽元素，反而造成「滑一下被拉住」。 */
         .app[data-theme="default"]{
           color:var(--limu-ink);
           background:
@@ -2488,6 +2482,12 @@
           .mobile-dock-btn.active{box-shadow:inset 0 0 0 1px rgba(43,109,168,.08)}
           .mobile-dock-btn.active .dock-icon{transform:translateY(-1px)}
           .class-locator-metrics{grid-template-columns:repeat(4,minmax(58px,1fr))}
+          /* v20.35：iPhone 長頁一次建立真實捲動範圍。
+             必須放在 v19 的 content-visibility 規則之後，避免被後規則重新開啟。 */
+          .archive-wrap,.settings-view,.month-summary,.att-panel,.exempt-panel,.slip-panel,.archive-wrap>section{
+            content-visibility:visible!important;
+            contain-intrinsic-size:none!important;
+          }
         }
 
         /* ══ v20.5：藍紫鳶尾前景框層＋中央操作安全區 ═══════════════════ */
@@ -3956,31 +3956,14 @@ window.addEventListener('pageshow', function(e) {
   try { window._writeLog('step', 'pageshow persisted:' + e.persisted); } catch(e) {}
 });
 
-// v20.33：滑動優先排程器。所有監聽器都是 passive，不攔截 Safari 原生捲動。
+// v20.35：滑動優先排程器。只記錄時間，不在滑動時改 DOM／class／樣式。
+// 所有監聽器都是 passive，不攔截 Safari 原生捲動。
 (function() {
-  var docEl = document.documentElement;
   var touchActive = false;
   var lastActivity = 0;
-  var quietTimer = null;
-  var quietMs = 240;
-  function scheduleQuietCheck() {
-    if (quietTimer !== null) clearTimeout(quietTimer);
-    quietTimer = setTimeout(function checkQuiet() {
-      var now = performance.now ? performance.now() : Date.now();
-      var remaining = quietMs - (now - lastActivity);
-      if (touchActive || remaining > 0) {
-        quietTimer = setTimeout(checkQuiet, Math.max(50, remaining || 80));
-        return;
-      }
-      quietTimer = null;
-      docEl.classList.remove('limu-user-scrolling');
-      try { window.dispatchEvent(new CustomEvent('limu-interaction-idle')); } catch(e) {}
-    }, quietMs);
-  }
+  var quietMs = 360;
   function setBusy() {
     lastActivity = performance.now ? performance.now() : Date.now();
-    if (!docEl.classList.contains('limu-user-scrolling')) docEl.classList.add('limu-user-scrolling');
-    scheduleQuietCheck();
   }
   function isBusy() {
     var now = performance.now ? performance.now() : Date.now();
@@ -3988,8 +3971,6 @@ window.addEventListener('pageshow', function(e) {
   }
   function runWhenIdle(callback, options) {
     var opts = options || {};
-    var started = Date.now();
-    var maxWait = Math.max(500, Number(opts.maxWait) || 6000);
     var token = { cancelled:false, timer:null, idleId:null };
     function invoke() {
       if (token.cancelled) return;
@@ -4000,8 +3981,10 @@ window.addEventListener('pageshow', function(e) {
     }
     function poll() {
       if (token.cancelled) return;
-      if (!isBusy() || Date.now() - started >= maxWait) { invoke(); return; }
-      token.timer = setTimeout(poll, 90);
+      /* 不可因 maxWait 到期就在手勢或慣性捲動中強制執行。
+         visibilitychange／pagehide 另有同步 flush，資料安全不依賴這個超時。 */
+      if (!isBusy()) { invoke(); return; }
+      token.timer = setTimeout(poll, 120);
     }
     poll();
     token.cancel = function() {
@@ -4706,10 +4689,10 @@ const WEEKDAYS = ["日", "一", "二", "三", "四", "五", "六"];
 const COUNSEL_PERIODS = ["早自習", "第1節", "第2節", "第3節", "第4節", "午休", "第5節", "第6節", "放學後"];
 const COUNSEL_TYPES = ["學習", "行為", "情緒", "人際", "家庭", "其他"];
 const COUNSEL_FOLLOWUP = ["需追蹤", "已處理", "轉介"];
-const APP_VERSION = "20.34.0";
+const APP_VERSION = "20.35.0";
 const APP_BUILD_DATE = "2026-08-01";
-const APP_BUILD_ID = "limu-teacher-v20-34-20260801";
-const APP_CACHE_NAME = "hw-tracker-v20-34";
+const APP_BUILD_ID = "limu-teacher-v20-35-20260801";
+const APP_CACHE_NAME = "hw-tracker-v20-35";
 window.__LIMU_BUILD__ = Object.freeze({
     appVersion: APP_VERSION,
     buildDate: APP_BUILD_DATE,
@@ -12934,7 +12917,9 @@ function App() {
                 onMouseDown: function() { startLongPress(-1); },
                 onMouseUp: stopLongPress, onMouseLeave: stopLongPress,
                 onTouchStart: function(e) { e.stopPropagation(); startLongPress(-1); },
-                onTouchEnd: function(e) { e.stopPropagation(); stopLongPress(); }
+                onTouchMove: function() { stopLongPress(); },
+                onTouchEnd: function(e) { e.stopPropagation(); stopLongPress(); },
+                onTouchCancel: stopLongPress
             }, "◀"),
             React.createElement("div", { className: "day-nav-center" },
                 React.createElement("div", {
@@ -12954,7 +12939,9 @@ function App() {
                 onMouseDown: function() { startLongPress(1); },
                 onMouseUp: stopLongPress, onMouseLeave: stopLongPress,
                 onTouchStart: function(e) { e.stopPropagation(); startLongPress(1); },
-                onTouchEnd: function(e) { e.stopPropagation(); stopLongPress(); }
+                onTouchMove: function() { stopLongPress(); },
+                onTouchEnd: function(e) { e.stopPropagation(); stopLongPress(); },
+                onTouchCancel: stopLongPress
             }, "▶")
         ),
         view === "day" && (React.createElement("main", {
@@ -15524,25 +15511,13 @@ function App() {
 // 每幀重繪會與 Safari 的捲動圖層重建互相干擾，造成操作後第一次滑動卡頓。
 // 星雲主題的靜態背景由 CSS 提供，外觀不受影響。
 
-// 2. 🟢 獨立出來的 PWA 點擊修復區塊（修正了括號，安全閉合）
+// 2. PWA 根節點修復：不再動態注入「* { touch-action:manipulation }」。
+// 全域強制規則會讓 Safari 在每次手勢判定時處理整棵 DOM，原生捲動優先。
 (function() {
   try {
     var isPWA = window.navigator.standalone === true ||
                 window.matchMedia('(display-mode:standalone)').matches;
     if (!isPWA) return;
-    // 消除 300ms 延遲和觸碰偏移
-    document.addEventListener('touchstart', function(){}, {passive:true});
-    // 加入全域 touch-action 和 cursor:pointer
-    var style = document.createElement('style');
-    style.textContent = [
-      '* { touch-action: manipulation !important; -webkit-tap-highlight-color: transparent !important; }',
-      'button, [onclick], a, input, select, textarea { cursor: pointer !important; }',
-      // PWA 模式下確保 body 不因 status bar 偏移
-      '@supports (padding-top: env(safe-area-inset-top)) {',
-      '  body { padding-top: env(safe-area-inset-top) !important; }',
-      '}'
-    ].join('');
-    document.head.appendChild(style);
     // 修正：確保 root div 的 pointer-events 正常
     var root = document.getElementById('root');
     if (root) {
@@ -15604,8 +15579,8 @@ function App() {
   var updateRegistration = null;
   var reloadingForUpdate = false;
   var updateActivationRequested = false;
-  var SW_BUILD_ID = 'limu-teacher-v20-34-20260801';
-  var SW_CACHE_NAME = 'hw-tracker-v20-34';
+  var SW_BUILD_ID = 'limu-teacher-v20-35-20260801';
+  var SW_CACHE_NAME = 'hw-tracker-v20-35';
   var SW_URL = './sw.js?build=' + encodeURIComponent(SW_BUILD_ID);
   var lastUpdateCheck = 0;
   // v20.16：checkBuildConsistency 本來就有 15 秒節流，但 reg.update() 沒有。
