@@ -4575,10 +4575,10 @@ const WEEKDAYS = ["日", "一", "二", "三", "四", "五", "六"];
 const COUNSEL_PERIODS = ["早自習", "第1節", "第2節", "第3節", "第4節", "午休", "第5節", "第6節", "放學後"];
 const COUNSEL_TYPES = ["學習", "行為", "情緒", "人際", "家庭", "其他"];
 const COUNSEL_FOLLOWUP = ["需追蹤", "已處理", "轉介"];
-const APP_VERSION = "20.28.0";
+const APP_VERSION = "20.29.0";
 const APP_BUILD_DATE = "2026-07-31";
-const APP_BUILD_ID = "limu-teacher-v20-28-20260731";
-const APP_CACHE_NAME = "hw-tracker-v20-28";
+const APP_BUILD_ID = "limu-teacher-v20-29-20260731";
+const APP_CACHE_NAME = "hw-tracker-v20-29";
 window.__LIMU_BUILD__ = Object.freeze({
     appVersion: APP_VERSION,
     buildDate: APP_BUILD_DATE,
@@ -6054,6 +6054,29 @@ async function loadDay(dateStr) {
     }
     return { ok: true, rows: [], attendance: { personal: new Set(), sick: new Set(), public: new Set() }, exempt: {}, attendancePeriod: {}, slips: [] };
 }
+// v20.29：localStorage 備援改為延後批次寫入。
+// 原本每次操作都做一次同步的 localStorage.setItem，快速連按時多次完整序列化
+// 疊在一起會塞住主執行緒，接下來的捲動必須排隊——症狀正是「快按快滑會頓，
+// 慢慢操作就順」。IDB 是主要儲存且為非同步，localStorage 僅為備援，
+// 因此在 IDB 成功時可安全延後；IDB 失敗時仍立即同步寫入。
+var _lsBackupQueue = {};
+var _lsBackupTimer = null;
+function flushLsBackup() {
+    _lsBackupTimer = null;
+    var keys = Object.keys(_lsBackupQueue);
+    for (var i = 0; i < keys.length; i++) {
+        try { _sl.set(keys[i], _lsBackupQueue[keys[i]]); } catch(e) {}
+        delete _lsBackupQueue[keys[i]];
+    }
+}
+try {
+    window.addEventListener('pagehide', flushLsBackup);
+    window.addEventListener('beforeunload', flushLsBackup);
+    document.addEventListener('visibilitychange', function() {
+        if (document.visibilityState !== 'visible') flushLsBackup();
+    });
+} catch(eFlush) {}
+
 async function saveDay(dateStr, rows, attendance, exempt, attendancePeriod, slips) {
     var pfx = classPrefix();
     var storageKey = pfx+"day:"+dateStr;
@@ -6066,8 +6089,15 @@ async function saveDay(dateStr, rows, attendance, exempt, attendancePeriod, slip
     catch (_a) { }
     // 2. localStorage（備援）
     var lsOk = false;
-    try { lsOk = _sl.set("hw5ren:"+pfx+dateStr, json) === true; }
-    catch (_b) { }
+    var lsKey = "hw5ren:"+pfx+dateStr;
+    if (idbOk) {
+        // 主要儲存已成功，備援延後合併寫入，避免阻塞主執行緒
+        _lsBackupQueue[lsKey] = json;
+        if (_lsBackupTimer === null) _lsBackupTimer = setTimeout(flushLsBackup, 700);
+    } else {
+        try { lsOk = _sl.set(lsKey, json) === true; }
+        catch (_b) { }
+    }
     markDirtyKey(storageKey);
     var persisted = idbOk || lsOk;
     return { ok: persisted, source: idbOk ? "idb" : (lsOk ? "local" : "memory") };
@@ -15377,8 +15407,8 @@ function App() {
   var updateRegistration = null;
   var reloadingForUpdate = false;
   var updateActivationRequested = false;
-  var SW_BUILD_ID = 'limu-teacher-v20-28-20260731';
-  var SW_CACHE_NAME = 'hw-tracker-v20-28';
+  var SW_BUILD_ID = 'limu-teacher-v20-29-20260731';
+  var SW_CACHE_NAME = 'hw-tracker-v20-29';
   var SW_URL = './sw.js?build=' + encodeURIComponent(SW_BUILD_ID);
   var lastUpdateCheck = 0;
   // v20.16：checkBuildConsistency 本來就有 15 秒節流，但 reg.update() 沒有。
