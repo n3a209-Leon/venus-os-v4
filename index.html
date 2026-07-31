@@ -723,11 +723,13 @@
         [data-theme="nebula"] .sum-wrap,
         [data-theme="nebula"] .day-view-card,
         [data-theme="nebula"] .ra{
-          background:rgba(8,5,24,.55) !important;
+          background:rgba(14,10,34,.93) !important;
           border:1px solid rgba(120,80,255,.3) !important;
           border-radius:12px;
-          backdrop-filter:blur(14px);
-          -webkit-backdrop-filter:blur(14px);
+             元素上，iOS 每個模糊層都需獨立快照背景並重新光柵化，DOM 一變動
+             就全部重繪，造成操作後第一次捲動停頓約一秒。改用不透明度接近的
+             純色背景，外觀幾乎相同但成本極低。 */
+
           box-shadow:0 4px 24px rgba(80,40,180,.15), inset 0 1px 0 rgba(150,100,255,.12);
           position:relative;
           z-index:1;
@@ -735,7 +737,7 @@
 
         /* 月曆 */
         [data-theme="nebula"] .calendar{background:rgba(6,4,22,.6) !important;border:1px solid rgba(100,70,220,.3) !important}
-        [data-theme="nebula"] .month-summary{background:rgba(6,4,22,.55) !important;border-radius:16px;border:1px solid rgba(100,70,220,.2) !important;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+        [data-theme="nebula"] .month-summary{background:rgba(11,8,30,.94) !important;border-radius:16px;border:1px solid rgba(100,70,220,.2) !important}
         [data-theme="nebula"] .summary-row{border-color:rgba(100,70,220,.2) !important}
         [data-theme="nebula"] .sum-date{color:#a090e0}
         [data-theme="nebula"] .no-data{color:rgba(160,140,255,.5)}
@@ -828,17 +830,18 @@
         [data-theme="nebula"] .bc{background:rgba(40,30,80,.5);border:1px solid rgba(100,70,180,.4);color:#a090cc}
 
         /* 出勤狀況卡片 */
-        [data-theme="nebula"] .att-type-btn{border-radius:8px;backdrop-filter:blur(4px)}
+        [data-theme="nebula"] .att-type-btn{border-radius:8px}
         /* 出勤狀況區塊 */
         [data-theme="nebula"] .att-section,
         [data-theme="nebula"] .attendance-section,
         [data-theme="nebula"] [class*="att-wrap"],
         [data-theme="nebula"] [class*="att-card"]{
-          background:rgba(8,5,25,.75) !important;
+          background:rgba(13,9,33,.95) !important;
           border:1px solid rgba(100,70,220,.3) !important;
           border-radius:12px;
-          backdrop-filter:blur(10px);
-          -webkit-backdrop-filter:blur(10px);
+             元素上，iOS 每個模糊層都需獨立快照背景並重新光柵化，DOM 一變動
+             就全部重繪，造成操作後第一次捲動停頓約一秒。改用不透明度接近的
+             純色背景，外觀幾乎相同但成本極低。 */
         }
 
         /* summary 標籤 */
@@ -867,8 +870,6 @@
           background:rgba(8,5,25,.75);
           border-radius:12px;
           border:1px solid rgba(100,70,220,.3);
-          backdrop-filter:blur(10px);
-          -webkit-backdrop-filter:blur(10px);
           overflow:hidden;
           margin-bottom:12px;
         }
@@ -893,8 +894,6 @@
           background:rgba(8,5,25,.75);
           border:1px solid rgba(100,70,220,.3);
           border-radius:12px;
-          backdrop-filter:blur(10px);
-          -webkit-backdrop-filter:blur(10px);
         }
 
         /* 滾動條 */
@@ -4584,10 +4583,10 @@ const WEEKDAYS = ["日", "一", "二", "三", "四", "五", "六"];
 const COUNSEL_PERIODS = ["早自習", "第1節", "第2節", "第3節", "第4節", "午休", "第5節", "第6節", "放學後"];
 const COUNSEL_TYPES = ["學習", "行為", "情緒", "人際", "家庭", "其他"];
 const COUNSEL_FOLLOWUP = ["需追蹤", "已處理", "轉介"];
-const APP_VERSION = "20.24.0";
+const APP_VERSION = "20.26.0";
 const APP_BUILD_DATE = "2026-07-31";
-const APP_BUILD_ID = "limu-teacher-v20-24-20260731";
-const APP_CACHE_NAME = "hw-tracker-v20-24";
+const APP_BUILD_ID = "limu-teacher-v20-26-20260731";
+const APP_CACHE_NAME = "hw-tracker-v20-26";
 window.__LIMU_BUILD__ = Object.freeze({
     appVersion: APP_VERSION,
     buildDate: APP_BUILD_DATE,
@@ -7874,7 +7873,7 @@ function SettingsView({ groups, saveGroups, groupVersions, saveGroupVersions, sa
                     React.createElement("input", { type:"date", style:{ width:"100%", padding:"10px 12px", border:"1.5px solid #c3d8ff", borderRadius:10, fontSize:14, boxSizing:"border-box", fontFamily:"inherit", outline:"none", marginBottom:16 },
                         value:newVerDate, onChange:function(e){ setNewVerDate(e.target.value); } }),
                     React.createElement("div", { style:{ display:"flex", gap:10 } },
-                        React.createElement("button", { style:{ flex:1, padding:"10px", border:"1px solid #ddd", borderRadius:10, background:"#f5f5f5", cursor:"pointer", fontFamily:"inherit", fontWeight:700 },
+                        React.createElement("button", { style:{ flex:1, padding:"12px", border:"1.5px solid #ce93d8", borderRadius:10, minHeight:48, background:"#fff", color:(nerv?"#ff8844":"#1e3a5f"), cursor:"pointer", fontFamily:"inherit", fontWeight:700, fontSize:14 },
                             onClick:function(){ setNewVerModal(false); } }, "\u53D6\u6D88"),
                         React.createElement("button", { style:{ flex:1, padding:"10px", border:"none", borderRadius:10, background:(nerv?"#ff6600":"#1e3a5f"), color:"#fff", cursor:"pointer", fontFamily:"inherit", fontWeight:700, fontSize:14 },
                             onClick: createNewVersion }, "\u78BA\u8A8D\u5EFA\u7ACB")))
@@ -7959,12 +7958,7 @@ function SettingsView({ groups, saveGroups, groupVersions, saveGroupVersions, sa
                             return React.createElement("div", { key:pi, style:{ display:"flex", alignItems:"center", gap:2 } },
                                 React.createElement("button", { onClick:function(){
                                     setOfficerRoleInput(t);
-                                    // v20.23：選完職稱直接把游標送到座號欄，
-                                    // 使用者只需「點一下 + 打數字」即可完成。
-                                    setTimeout(function(){
-                                        var el = document.getElementById('officer-seat-input');
-                                        if (el) { try { el.focus(); el.select(); } catch(e) {} }
-                                    }, 0);
+                                    // v20.26：座號已改為點選格，不再需要把游標送到輸入框。
                                 }, style:{ padding:"7px 12px", fontSize:13, borderRadius:12, border:"1px solid #ce93d8", background: officerRoleInput===t ? (nerv?"#ff8844":"#1e3a5f") : (nerv?"rgba(255,102,0,.06)":"#f3e5f5"), color: officerRoleInput===t ? "#fff" : (nerv?"#ff8844":"#1e3a5f"), cursor:"pointer", fontFamily:"inherit" } }, t),
                                 React.createElement("button", { onClick:function(e){ e.stopPropagation();
                                         var next = officerPresets.filter(function(_,i){ return i!==pi; });
@@ -7973,7 +7967,7 @@ function SettingsView({ groups, saveGroups, groupVersions, saveGroupVersions, sa
                                     }, style:{ background:"none", border:"none", color:(nerv?"rgba(255,102,0,.4)":"#ce93d8"), cursor:"pointer", fontSize:14, padding:"0 2px", lineHeight:1 } }, "\u00D7"));
                         })),
                     React.createElement("div", { style:{ display:"flex", gap:6, marginBottom:14 } },
-                        React.createElement("input", { style:{ flex:1, minWidth:0, padding:"6px 10px", border:"1px solid #ce93d8", borderRadius:10, fontSize:12, fontFamily:"inherit", outline:"none", background:(nerv?"#0f1a0f":"#fff"), color:(nerv?"#00ff66":"#1e3a5f") },
+                        React.createElement("input", { style:{ flex:1, minWidth:0, padding:"6px 10px", border:"1.5px solid #ce93d8", borderRadius:10, fontSize:13, minHeight:40, fontFamily:"inherit", outline:"none", background:(nerv?"#0f1a0f":"#fff"), color:(nerv?"#00ff66":"#1e3a5f") },
                             placeholder:"\u65B0\u589E\u5FEB\u901F\u9078\u9805\u2026", value:officerPresetInput,
                             onChange:function(e){ setOfficerPresetInput(e.target.value); },
                             onKeyDown:function(e){ if(e.key==='Enter' && officerPresetInput.trim()){
@@ -7983,32 +7977,43 @@ function SettingsView({ groups, saveGroups, groupVersions, saveGroupVersions, sa
                         React.createElement("button", { onClick:function(){ if(!officerPresetInput.trim()) return;
                                 var next=[...officerPresets, officerPresetInput.trim()];
                                 setOfficerPresets(next); setOfficerPresetInput('');
-                            }, style:{ padding:"6px 12px", border:"none", borderRadius:10, background:(nerv?"#ff8844":"#1e3a5f"), color:"#fff", cursor:"pointer", fontFamily:"inherit", fontWeight:700, fontSize:12 } }, "+ \u52A0\u5165"),
+                            }, style:{ padding:"0 14px", border:"1.5px solid transparent", borderRadius:10, minHeight:40, background:(nerv?"#ff8844":"#1e3a5f"), color:"#fff", cursor:"pointer", fontFamily:"inherit", fontWeight:700, fontSize:13 } }, "+ \u52A0\u5165"),
                         React.createElement("button", { onClick:function(){
                                 if(!window.confirm('將快速選項重設為預設的 ' + DEFAULT_OFFICER_PRESETS.length + ' 個常用職稱？\n目前已新增的自訂選項會被取代（已指派的幹部名單不受影響）。')) return;
                                 setOfficerPresets(DEFAULT_OFFICER_PRESETS.slice()); setOfficerPresetInput('');
                             }, title:"重設為預設職稱", 'aria-label':"重設為預設職稱",
-                            style:{ padding:"6px 10px", border:"1px solid #ce93d8", borderRadius:10, background:"transparent", color:(nerv?"#ff8844":"#1e3a5f"), cursor:"pointer", fontFamily:"inherit", fontWeight:600, fontSize:12, whiteSpace:"nowrap" } }, "\u21BA \u91CD\u8A2D")),
+                            style:{ padding:"0 12px", border:"1.5px solid #ce93d8", borderRadius:10, minHeight:40, background:"#fff", color:(nerv?"#ff8844":"#1e3a5f"), cursor:"pointer", fontFamily:"inherit", fontWeight:600, fontSize:12, whiteSpace:"nowrap" } }, "\u21BA \u91CD\u8A2D")),
                     React.createElement("div", { style:{ borderTop:"1px solid #f0e6fa", paddingTop:12, marginBottom:12 } },
                         React.createElement("div", { style:{ fontSize:12, color:(nerv?"rgba(255,102,0,.6)":"#b388c9"), marginBottom:8, fontWeight:600 } }, "\u8077\u4F4D\u540D\u7A31"),
                         React.createElement("input", { style:{ width:"100%", padding:"10px 12px", border:"1.5px solid #ce93d8", borderRadius:10, fontSize:14, boxSizing:"border-box", fontFamily:"inherit", outline:"none", marginBottom:10, background:(nerv?"#0f1a0f":"#fff"), color:(nerv?"#00ff66":"#1e3a5f") },
                             placeholder:"\u8F38\u5165\u6216\u9EDE\u9078\u4E0A\u65B9\u5FEB\u901F\u9078\u9805\u2026", value:officerRoleInput,
                             onChange:function(e){ setOfficerRoleInput(e.target.value); } }),
                         React.createElement("div", { style:{ fontSize:12, color:(nerv?"rgba(255,102,0,.6)":"#b388c9"), marginBottom:8, fontWeight:600 } }, "\u5EA7\u865F"),
-                        React.createElement("input", { type:"number", style:{ width:"100%", padding:"10px 12px", border:"1.5px solid #ce93d8", borderRadius:10, fontSize:14, boxSizing:"border-box", fontFamily:"inherit", outline:"none" },
-                            id:"officer-seat-input", placeholder:"\u4F8B\uFF1A7", value:officerSeatInput, onFocus:selAll,
-                            onChange:function(e){ setOfficerSeatInput(e.target.value); },
-                            onKeyDown:function(e){ if(e.key==='Enter' && officerRoleInput.trim() && officerSeatInput.trim()){
-                                var next = JSON.parse(JSON.stringify(officers));
-                                if(!next[officerSem]) next[officerSem]=[];
-                                next[officerSem].push({ role: officerRoleInput.trim(), seat: parseInt(officerSeatInput) });
-                                saveOfficers(next);
-                                setOfficerModal(false); setOfficerRoleInput(''); setOfficerSeatInput('');
-                            }} })),
+                        // v20.26：座號改為點選。原本是 type="number" 的輸入框，
+                        // 在 iPhone 上要叫出數字鍵盤再打字；改成座號按鈕格後，
+                        // 整個流程變成「點職稱 → 點座號 → 確認」，全程免打字。
+                        React.createElement("div", { style:{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(46px,1fr))", gap:6, maxHeight:168, overflowY:"auto", padding:2, marginBottom:2 } },
+                            Array.from({ length: Math.max(1, Number(classSize) || 30) }, function(_, i){ return i + 1; }).map(function(num){
+                                var sel = String(officerSeatInput) === String(num);
+                                var taken = (officers[officerSem] || []).some(function(o){ return Number(o.seat) === num; });
+                                return React.createElement("button", {
+                                    key: num,
+                                    onClick: function(){ setOfficerSeatInput(sel ? '' : String(num)); },
+                                    title: taken ? String(num) + ' 號已擔任其他職務' : String(num) + ' 號',
+                                    style: {
+                                        padding:"10px 0", borderRadius:10, fontSize:15, fontWeight:700,
+                                        fontFamily:"inherit", cursor:"pointer", minHeight:44,
+                                        border: sel ? "2px solid " + (nerv?"#ff8844":"#1e3a5f") : "1.5px solid #ce93d8",
+                                        background: sel ? (nerv?"#ff8844":"#1e3a5f") : (nerv?"rgba(255,102,0,.06)":"#fff"),
+                                        color: sel ? "#fff" : (nerv?"#ff8844":"#1e3a5f"),
+                                        opacity: (taken && !sel) ? .45 : 1
+                                    }
+                                }, num);
+                            }))),
                     React.createElement("div", { style:{ display:"flex", gap:10 } },
-                        React.createElement("button", { style:{ flex:1, padding:"10px", border:"1px solid #ddd", borderRadius:10, background:"#f5f5f5", cursor:"pointer", fontFamily:"inherit", fontWeight:700 },
+                        React.createElement("button", { style:{ flex:1, padding:"12px", border:"1.5px solid #ce93d8", borderRadius:10, minHeight:48, background:"#fff", color:(nerv?"#ff8844":"#1e3a5f"), cursor:"pointer", fontFamily:"inherit", fontWeight:700, fontSize:14 },
                             onClick:function(){ setOfficerModal(false); setOfficerRoleInput(''); setOfficerSeatInput(''); } }, "\u53D6\u6D88"),
-                        React.createElement("button", { style:{ flex:1, padding:"10px", border:"none", borderRadius:10, background: (officerRoleInput.trim() && officerSeatInput.trim()) ? (nerv?"#ff8844":"#1e3a5f") : (nerv?"rgba(255,102,0,.4)":"#ce93d8"), color:"#fff", cursor: (officerRoleInput.trim() && officerSeatInput.trim()) ? "pointer" : "not-allowed", fontFamily:"inherit", fontWeight:700, fontSize:14 },
+                        React.createElement("button", { style:{ flex:1, padding:"12px", border:"1.5px solid transparent", borderRadius:10, minHeight:48, background: (officerRoleInput.trim() && officerSeatInput.trim()) ? (nerv?"#ff8844":"#1e3a5f") : (nerv?"rgba(255,102,0,.4)":"#ce93d8"), color:"#fff", cursor: (officerRoleInput.trim() && officerSeatInput.trim()) ? "pointer" : "not-allowed", fontFamily:"inherit", fontWeight:700, fontSize:14 },
                             disabled: !(officerRoleInput.trim() && officerSeatInput.trim()),
                             onClick:function(){ if(!officerRoleInput.trim() || !officerSeatInput.trim()) return;
                                 var next = JSON.parse(JSON.stringify(officers));
@@ -12792,7 +12797,7 @@ function App() {
                             saveSchoolCalendar(next); setDayEventModal(false); setDayEventInput('');
                         }} }),
                     React.createElement("div", { style:{ display:"flex", gap:10 } },
-                        React.createElement("button", { style:{ flex:1, padding:"10px", border:"1px solid #ddd", borderRadius:10, background:"#f5f5f5", cursor:"pointer", fontFamily:"inherit", fontWeight:700 },
+                        React.createElement("button", { style:{ flex:1, padding:"12px", border:"1.5px solid #ce93d8", borderRadius:10, minHeight:48, background:"#fff", color:(nerv?"#ff8844":"#1e3a5f"), cursor:"pointer", fontFamily:"inherit", fontWeight:700, fontSize:14 },
                             onClick:function(){ setDayEventModal(false); setDayEventInput(''); } }, "\u53D6\u6D88"),
                         React.createElement("button", { style:{ flex:1, padding:"10px", border:"none", borderRadius:10, background: dayEventInput.trim() ? "#1e3a5f" : "#aab8cc", color:"#fff", cursor: dayEventInput.trim() ? "pointer" : "not-allowed", fontFamily:"inherit", fontWeight:700, fontSize:14 },
                             disabled: !dayEventInput.trim(),
@@ -15368,8 +15373,8 @@ function App() {
   var updateRegistration = null;
   var reloadingForUpdate = false;
   var updateActivationRequested = false;
-  var SW_BUILD_ID = 'limu-teacher-v20-24-20260731';
-  var SW_CACHE_NAME = 'hw-tracker-v20-24';
+  var SW_BUILD_ID = 'limu-teacher-v20-26-20260731';
+  var SW_CACHE_NAME = 'hw-tracker-v20-26';
   var SW_URL = './sw.js?build=' + encodeURIComponent(SW_BUILD_ID);
   var lastUpdateCheck = 0;
   // v20.16：checkBuildConsistency 本來就有 15 秒節流，但 reg.update() 沒有。
