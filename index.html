@@ -708,8 +708,6 @@
           position:relative;z-index:2;
           background:rgba(6,3,20,.88);
           border-bottom:1px solid rgba(120,80,255,.4);
-          backdrop-filter:blur(16px);
-          -webkit-backdrop-filter:blur(16px);
           animation:nebula-glow 4s ease-in-out infinite;
         }
         [data-theme="nebula"] h1{
@@ -814,7 +812,7 @@
         /* Modal 彈窗 */
         [data-theme="nebula"] .ov{background:rgba(2,2,15,.75);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
         [data-theme="nebula"] .mo{
-          background:rgba(8,5,28,.92);
+          background:rgba(10,7,32,.985);
           border:1px solid rgba(130,90,255,.45);
           border-radius:20px;
           backdrop-filter:blur(20px);
@@ -2131,8 +2129,6 @@
           top:0;
           z-index:25;
           padding:8px 0;
-          backdrop-filter:blur(14px);
-          -webkit-backdrop-filter:blur(14px);
         }
         [data-theme="default"] .settings-tabbar{background:rgba(240,244,248,.93)}
         [data-theme="nerv"] .settings-tabbar{background:rgba(5,2,0,.93)}
@@ -2165,8 +2161,6 @@
             border-radius:20px 20px 0 0;
             background:rgba(255,255,255,.92);
             box-shadow:0 -6px 24px rgba(20,42,74,.2);
-            backdrop-filter:blur(18px) saturate(1.2);
-            -webkit-backdrop-filter:blur(18px) saturate(1.2);
           }
           .mobile-dock-btn{
             min-width:0;
@@ -2261,8 +2255,6 @@
           border-bottom:1px solid rgba(38,76,116,.13);
           background:rgba(248,251,254,.91);
           box-shadow:0 5px 18px rgba(30,58,95,.08);
-          backdrop-filter:blur(16px) saturate(1.25);
-          -webkit-backdrop-filter:blur(16px) saturate(1.25);
         }
         .class-context-inner{
           max-width:960px;
@@ -4583,10 +4575,10 @@ const WEEKDAYS = ["日", "一", "二", "三", "四", "五", "六"];
 const COUNSEL_PERIODS = ["早自習", "第1節", "第2節", "第3節", "第4節", "午休", "第5節", "第6節", "放學後"];
 const COUNSEL_TYPES = ["學習", "行為", "情緒", "人際", "家庭", "其他"];
 const COUNSEL_FOLLOWUP = ["需追蹤", "已處理", "轉介"];
-const APP_VERSION = "20.26.0";
+const APP_VERSION = "20.27.0";
 const APP_BUILD_DATE = "2026-07-31";
-const APP_BUILD_ID = "limu-teacher-v20-26-20260731";
-const APP_CACHE_NAME = "hw-tracker-v20-26";
+const APP_BUILD_ID = "limu-teacher-v20-27-20260731";
+const APP_CACHE_NAME = "hw-tracker-v20-27";
 window.__LIMU_BUILD__ = Object.freeze({
     appVersion: APP_VERSION,
     buildDate: APP_BUILD_DATE,
@@ -7866,7 +7858,11 @@ function SettingsView({ groups, saveGroups, groupVersions, saveGroupVersions, sa
                     })),
                 React.createElement("p", { style:{ fontSize:11, color:"#aab8cc", marginTop:8 } }, "\u25CF \u7DA0\u9EDE\uFF1D\u76EE\u524D\u751F\u6548\u4E2D\u3002\u4E0B\u65B9\u6B63\u5728\u7DE8\u8F2F\uFF1A\u7B2C" + (sortedVersions.slice().reverse().findIndex(function(x){return x.verId===selectedVerId;})+1) + "\u6B21\uFF08\u751F\u6548\u65E5\uFF1A" + getVersionById(selectedVerId).effectiveDate + "\uFF09"),
                 sortedVersions.length > 1 && React.createElement("button", { onClick: function(){ deleteVersion(selectedVerId); }, style:{ marginTop:10, padding:"6px 14px", border:"1px solid #e53935", borderRadius:8, background:"rgba(229,57,53,.08)", color:"#e53935", cursor:"pointer", fontSize:12, fontWeight:700 } }, "\u00D7 \u522A\u9664\u6B64\u7248\u672C")),
-            newVerModal && ReactDOM.createPortal(React.createElement("div", { style:{ position:"fixed", inset:0, background:"rgba(0,0,0,.55)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:9000, padding:20 } },
+            newVerModal && ReactDOM.createPortal(React.createElement("div", { style:{ position:"fixed", inset:0, background:"rgba(0,0,0,.55)", display:"flex", alignItems:"flex-start", justifyContent:"center", zIndex:9000, overflowY:"auto", WebkitOverflowScrolling:"touch",
+                    /* v20.27：改由遮罩層自身捲動並置頂對齊。原本 alignItems:"center"
+                       搭配內層 maxHeight:80vh，內容變長時跳窗會沉到畫面下半，
+                       底部按鈕被導覽列遮住。 */
+                    padding:"calc(16px + var(--safe-top, 0px)) 20px calc(24px + var(--safe-bottom))" } },
                 React.createElement("div", { style:{ background:"#fff", borderRadius:16, padding:24, width:"100%", maxWidth:320, boxShadow:"0 20px 60px rgba(0,0,0,.35)" } },
                     React.createElement("div", { style:{ fontSize:15, fontWeight:900, color:(nerv?"#ff6600":"#1e3a5f"), marginBottom:6 } }, "\uD83D\uDCC5 \u65B0\u589E\u7D44\u5225\u7248\u672C"),
                     React.createElement("p", { style:{ fontSize:11, color:"#aab8cc", marginBottom:12 } }, "\u9078\u64C7\u65B0\u7248\u672C\u5F9E\u54EA\u5929\u958B\u59CB\u751F\u6548\uFF0C\u4E4B\u524D\u7684\u4F5C\u696D\u7D00\u9304\u4ECD\u6703\u986F\u793A\u820A\u7D44\u5225\u5206\u914D"),
@@ -7949,8 +7945,12 @@ function SettingsView({ groups, saveGroups, groupVersions, saveGroupVersions, sa
                                     }, style:{ background:"none", border:"none", color:"#e53935", cursor:"pointer", fontSize:13, fontWeight:700 } }, "\u00D7 \u522A\u9664"));
                         })
                     )),
-            officerModal && React.createElement("div", { style:{ position:"fixed", inset:0, background:"rgba(0,0,0,.55)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:9000, padding:20 } },
-                React.createElement("div", { style:{ background:"#fff", borderRadius:16, padding:24, width:"100%", maxWidth:340, boxShadow:"0 20px 60px rgba(0,0,0,.35)", maxHeight:"80vh", overflowY:"auto" } },
+            officerModal && React.createElement("div", { style:{ position:"fixed", inset:0, background:"rgba(0,0,0,.55)", display:"flex", alignItems:"flex-start", justifyContent:"center", zIndex:9000, overflowY:"auto", WebkitOverflowScrolling:"touch",
+                    /* v20.27：改由遮罩層自身捲動並置頂對齊。原本 alignItems:"center"
+                       搭配內層 maxHeight:80vh，內容變長時跳窗會沉到畫面下半，
+                       底部按鈕被導覽列遮住。 */
+                    padding:"calc(16px + var(--safe-top, 0px)) 20px calc(24px + var(--safe-bottom))" } },
+                React.createElement("div", { style:{ background:"#fff", borderRadius:16, padding:24, width:"100%", maxWidth:340, boxShadow:"0 20px 60px rgba(0,0,0,.35)", margin:"auto 0", flexShrink:0 } },
                     React.createElement("div", { style:{ fontSize:15, fontWeight:900, color:(nerv?"#ff8844":"#1e3a5f"), marginBottom:14 } }, "\uD83C\uDF96\uFE0F \u65B0\u589E\u5E79\u90E8\uFF08"+(officerSem==='1'?"\u4E0A\u5B78\u671F":"\u4E0B\u5B78\u671F")+"\uFF09"),
                     React.createElement("div", { style:{ fontSize:12, color:(nerv?"rgba(255,102,0,.6)":"#b388c9"), marginBottom:8, fontWeight:600 } }, "\u5FEB\u901F\u9078\u9805\uFF08\u53EF\u65B0\u589E / \u522A\u9664\uFF09"),
                     React.createElement("div", { style:{ display:"flex", gap:6, flexWrap:"wrap", marginBottom:10 } },
@@ -12785,7 +12785,11 @@ function App() {
                     color: isNerv ? "#ff8844" : "#5a7ab5", fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:"inherit"
                 }
             }, "\uD83D\uDCDD \u65B0\u589E\u4ECA\u65E5\u4E8B\u4EF6"),
-            dayEventModal && ReactDOM.createPortal(React.createElement("div", { style:{ position:"fixed", inset:0, background:"rgba(0,0,0,.55)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:9000, padding:20 } },
+            dayEventModal && ReactDOM.createPortal(React.createElement("div", { style:{ position:"fixed", inset:0, background:"rgba(0,0,0,.55)", display:"flex", alignItems:"flex-start", justifyContent:"center", zIndex:9000, overflowY:"auto", WebkitOverflowScrolling:"touch",
+                    /* v20.27：改由遮罩層自身捲動並置頂對齊。原本 alignItems:"center"
+                       搭配內層 maxHeight:80vh，內容變長時跳窗會沉到畫面下半，
+                       底部按鈕被導覽列遮住。 */
+                    padding:"calc(16px + var(--safe-top, 0px)) 20px calc(24px + var(--safe-bottom))" } },
                 React.createElement("div", { style:{ background:"#fff", borderRadius:16, padding:24, width:"100%", maxWidth:320, boxShadow:"0 20px 60px rgba(0,0,0,.35)" } },
                     React.createElement("div", { style:{ fontSize:15, fontWeight:900, color:"#1e3a5f", marginBottom:6 } }, "\uD83D\uDCDD " + selDate + " \u4E8B\u4EF6"),
                     React.createElement("p", { style:{ fontSize:11, color:"#aab8cc", marginBottom:12 } }, "\u53EF\u52A0 \uD83D\uDD34 \uD83D\uDCDD \u7B49 emoji \u4F86\u6539\u8B8A\u986F\u793A\u8272\u5F69"),
@@ -15373,8 +15377,8 @@ function App() {
   var updateRegistration = null;
   var reloadingForUpdate = false;
   var updateActivationRequested = false;
-  var SW_BUILD_ID = 'limu-teacher-v20-26-20260731';
-  var SW_CACHE_NAME = 'hw-tracker-v20-26';
+  var SW_BUILD_ID = 'limu-teacher-v20-27-20260731';
+  var SW_CACHE_NAME = 'hw-tracker-v20-27';
   var SW_URL = './sw.js?build=' + encodeURIComponent(SW_BUILD_ID);
   var lastUpdateCheck = 0;
   // v20.16：checkBuildConsistency 本來就有 15 秒節流，但 reg.update() 沒有。
