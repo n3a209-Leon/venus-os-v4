@@ -33,6 +33,9 @@
         button,td,[class*="btn"],[class*="cell"],[class*="row"],[class*="nb"],[class*="gc"],[class*="hwc"]{
           -webkit-touch-callout:none;
           cursor:pointer;
+          /* v20.38：manipulation 允許 pan/pinch，只擋雙擊縮放；比 pan-y 寬鬆，
+             不影響 v20.37 的原生捲動修正，但避免連點座號時整頁被放大。 */
+          touch-action:manipulation;
         }
         /* PWA safe area (iPhone notch/home indicator)
            底部安全區由固定導覽／底部面板自行吸收，避免 body 再留一層空白。 */
@@ -40,7 +43,8 @@
           --safe-top:env(safe-area-inset-top,0px);
           --safe-bottom:env(safe-area-inset-bottom,0px);
         }
-        body{padding:var(--safe-top) 0 0}
+        /* v20.38：安全區交給 header／登入頁自行吸收，狀態列區才會是標題列的顏色。 */
+        body{padding:0}
         body,html{background:#f0f4f8;min-height:100%;-webkit-tap-highlight-color:transparent}
         .app{min-height:100vh;min-height:100dvh;background:#f0f4f8;font-family:'Noto Sans TC',sans-serif;color:#1a2332;transition:background .3s,color .3s}
 
@@ -49,7 +53,7 @@
         .theme-btn:hover{background:rgba(255,255,255,.28)}
 
         /* ── HEADER ── */
-        header{background:linear-gradient(135deg,#1e3a5f,#2d5986);padding:14px 20px 0;box-shadow:0 3px 12px rgba(0,0,0,.2);transition:background .3s;position:relative;z-index:50}
+        header{background:linear-gradient(135deg,#1e3a5f,#2d5986);padding:max(14px,var(--safe-top)) 20px 0;box-shadow:0 3px 12px rgba(0,0,0,.2);transition:background .3s;position:relative;z-index:50}
         .hi{max-width:960px;margin:0 auto;display:flex;flex-direction:column;gap:6px;padding-bottom:8px}
         .hi-row1{display:flex;align-items:center;gap:8px}
         .hi-row2{display:flex;align-items:center}
@@ -725,6 +729,7 @@
           background:rgba(14,10,34,.93) !important;
           border:1px solid rgba(120,80,255,.3) !important;
           border-radius:12px;
+          /* v20.36：移除 backdrop-filter。半透明毛玻璃同時套在多個
              元素上，iOS 每個模糊層都需獨立快照背景並重新光柵化，DOM 一變動
              就全部重繪，造成操作後第一次捲動停頓約一秒。改用不透明度接近的
              純色背景，外觀幾乎相同但成本極低。 */
@@ -838,6 +843,7 @@
           background:rgba(13,9,33,.95) !important;
           border:1px solid rgba(100,70,220,.3) !important;
           border-radius:12px;
+          /* v20.36：移除 backdrop-filter。半透明毛玻璃同時套在多個
              元素上，iOS 每個模糊層都需獨立快照背景並重新光柵化，DOM 一變動
              就全部重繪，造成操作後第一次捲動停頓約一秒。改用不透明度接近的
              純色背景，外觀幾乎相同但成本極低。 */
@@ -2136,7 +2142,19 @@
           top:0;
           z-index:25;
           padding:8px 0;
+          /* 分頁列位於可捲動內容頂端；垂直手勢直接交給 Safari。 */
+          touch-action:pan-y;
         }
+        .settings-tab-btn{
+          touch-action:pan-y;
+          -webkit-user-select:none;
+          user-select:none;
+          -webkit-tap-highlight-color:transparent;
+        }
+        /* 共用 button:active 會套用 filter；在 Safari 起滑時可能短暫建立合成層。 */
+        .settings-tab-btn:active{filter:none}
+        /* v20.38：座號／組別大量按鈕起滑時同樣會被 filter 建圖層，沿用 v20.36 範圍。 */
+        .settings-view button:active,.settings-view .gc:active,.settings-view .nb:active{filter:none}
         [data-theme="default"] .settings-tabbar{background:rgba(240,244,248,.93)}
         [data-theme="nerv"] .settings-tabbar{background:rgba(5,2,0,.93)}
         [data-theme="nebula"] .settings-tabbar{background:rgba(7,4,15,.91)}
@@ -2209,6 +2227,8 @@
             padding-bottom:max(18px,var(--safe-bottom))!important;
           }
           .settings-tabbar{margin-left:-2px;margin-right:-2px}
+          /* 已選取分頁沒有再次點擊的動作，略過命中測試讓拖曳立即成為原生捲動。 */
+          .settings-tab-btn[aria-selected="true"]{pointer-events:none}
           /* Safari 長頁若延後建立內容範圍，手勢會短暫像是拉不動。手機採完整排版。 */
           .archive-wrap,.settings-view{content-visibility:visible;contain-intrinsic-size:none}
         }
@@ -3516,13 +3536,13 @@
         }
 
         /* v20.36：iPhone 原生捲動層。
-           1. 頂部安全區由 body 實際佔位，不把工作列畫進狀態列。
+           1. 頂部安全區由 header 的 padding-top 吸收（見上方 header 規則），
+              .app 本身維持整個視窗高度，不再重複扣除。
            2. 手機不使用會在捲動時反覆合成的全螢幕 fixed 主題層與 sticky 工作列。
            3. 長頁直接採一般排版，避免大面積 paint containment 造成分段光柵化。 */
         @media(max-width:640px){
           html,body{touch-action:auto;overscroll-behavior-y:auto}
-          body{padding-top:var(--safe-top)!important}
-          .app{min-height:calc(100dvh - var(--safe-top))}
+          .app{min-height:100dvh}
 
           .class-context-bar,.settings-tabbar{
             position:relative!important;
@@ -4154,7 +4174,8 @@ debugStep('JS START OK');
       var banner = document.createElement('div');
       banner.id = 'crash-banner';
       banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:999999999;' +
-        'background:#1a0000;color:#ff9999;padding:12px 14px;font-size:12px;' +
+        'background:#1a0000;color:#ff9999;font-size:12px;' +
+        'padding:calc(12px + env(safe-area-inset-top,0px)) 14px 12px;' +
         'font-family:monospace;white-space:pre-wrap;max-height:60vh;overflow-y:auto;' +
         'border-bottom:2px solid #ff4444;box-shadow:0 4px 20px rgba(0,0,0,.8)';
       banner.textContent = crashMsg;
@@ -4364,7 +4385,8 @@ function visibleStorageKeys() {
     }
     if (String(raw).indexOf('hw5ren:u:') !== 0 && scopeIsLegacyAppKey(raw)) add(raw);
   });
-  if (owner && _scopeHydratedUid === owner) Object.keys(_scopeMemory).forEach(add);
+  // v20.40：與 safeGet 一致——記憶體隨 setUid 清空，未 hydrate 時同樣屬於這個帳號。
+  if (owner) Object.keys(_scopeMemory).forEach(add);
   return out;
 }
 function safeGet(k) {
@@ -4373,6 +4395,10 @@ function safeGet(k) {
   if (_scopeHydratedUid === _activeStorageUid) {
     return Object.prototype.hasOwnProperty.call(_scopeMemory, logical) ? _scopeMemory[logical] : null;
   }
+  // v20.40：hydrate 尚未完成或失敗（例如 IndexedDB 不可用）時，_scopeMemory 仍會
+  // 收下本回合的 safeSet。舊版直接跳過記憶體去讀 localStorage，導致「剛寫完馬上讀
+  // 卻讀到舊值」。記憶體在 setUid 換帳號時會清空，所以這裡讀它不會跨帳號。
+  if (Object.prototype.hasOwnProperty.call(_scopeMemory, logical)) return _scopeMemory[logical];
   return rawStorageGet(scopedLocalKey(logical));
 }
 function safeSet(k, v) {
@@ -4523,6 +4549,16 @@ window.LIMUStorageScope = {
       }
       return { loaded:Object.keys(result.memory || {}).length, migrated:result.migrated || 0 };
     });
+  },
+  // v20.40：單次探測 IndexedDB 是否真的可用（Safari 無痕、儲存被封鎖、
+  // 容量耗盡都會讓 open 失敗）。回傳 boolean，永不 reject。
+  probeIdb:function(){
+    try {
+      return openScopeDatabase().then(
+        function(db){ try { db.close(); } catch(e) {} return true; },
+        function(){ return false; }
+      );
+    } catch(e) { return Promise.resolve(false); }
   },
   rawGet:rawStorageGet,
   rawSet:rawStorageSet
@@ -4690,10 +4726,6 @@ debugStep('REACTDOM LOAD START');
   function safeSet(key, val) { _sl.set(key, val); }
   function safeRemove(key) { _sl.remove(key); }
 
-  // ── safeJSONParse ──────────────────────────────────────────────────
-  function safeJSONParse(v, fallback) {
-    return safeJSON(v, fallback !== undefined ? fallback : null);
-  }
 
   // ── IDB guard ──────────────────────────────────────────────────────
   var _idbAvailable = (function() {
@@ -4736,15 +4768,11 @@ function loadGroups() {
 const PRESET_HW = ["國習", "數習", "國乙", "國甲", "聽寫", "小日記", "小作文", "作文段落", "作文", "數習題", "國卷", "數卷", "回條", "國習題"];
 const NO_EXEMPT_HW = new Set(["聯絡簿", "國卷", "數卷"]); // 這些作業不顯示抵免
 const DUAL_HW = new Set(["國卷", "數卷", "聽寫"]); // 雙排作業（訂正+簽名）
-const MAX_ROWS = 999; // 無上限
 const WEEKDAYS = ["日", "一", "二", "三", "四", "五", "六"];
-const COUNSEL_PERIODS = ["早自習", "第1節", "第2節", "第3節", "第4節", "午休", "第5節", "第6節", "放學後"];
-const COUNSEL_TYPES = ["學習", "行為", "情緒", "人際", "家庭", "其他"];
-const COUNSEL_FOLLOWUP = ["需追蹤", "已處理", "轉介"];
-const APP_VERSION = "20.36.0";
+const APP_VERSION = "20.40.0";
 const APP_BUILD_DATE = "2026-08-01";
-const APP_BUILD_ID = "limu-teacher-v20-36-20260801";
-const APP_CACHE_NAME = "hw-tracker-v20-36";
+const APP_BUILD_ID = "limu-teacher-v20-40-20260801";
+const APP_CACHE_NAME = "hw-tracker-v20-40";
 window.__LIMU_BUILD__ = Object.freeze({
     appVersion: APP_VERSION,
     buildDate: APP_BUILD_DATE,
@@ -5082,57 +5110,6 @@ function clearDirtyKeys(keys) {
 }
 document.addEventListener('visibilitychange', function(){ if (document.hidden) flushDirtyMapNow(); });
 window.addEventListener('pagehide', flushDirtyMapNow);
-// ── Counseling load / save ───────────────────────────────────────────────────
-async function loadCounsel(dateStr) {
-    var pfx = classPrefix();
-    let raw = null;
-    try {
-        raw = await idbGet(pfx+"counsel:"+dateStr);
-    }
-    catch (_a) { }
-    if (!raw) {
-        try {
-            raw = _sl.get("hw5ren:c:"+pfx+dateStr);
-        }
-        catch (_b) { }
-    }
-    if (raw) {
-        try {
-            return JSON.parse(raw);
-        }
-        catch (_c) { }
-    }
-    return [];
-}
-async function saveCounsel(dateStr, records) {
-    var pfx = classPrefix();
-    var storageKey = pfx+"counsel:"+dateStr;
-    const json = JSON.stringify(records);
-    var idbOk = false, lsOk = false;
-    try { idbOk = await idbSet(storageKey, json); }
-    catch (_a) { }
-    if (idbOk) queueLsBackup("hw5ren:c:"+pfx+dateStr, json);
-    else {
-        try { lsOk = _sl.set("hw5ren:c:"+pfx+dateStr, json) === true; }
-        catch (_b) { }
-    }
-    markDirtyKey(storageKey);
-    return { ok: idbOk || lsOk, source: idbOk ? 'idb' : (lsOk ? 'local' : 'memory') };
-}
-async function loadCounselMonth(y, m) {
-    const totalDays = new Date(y, m + 1, 0).getDate();
-    const dates = [];
-    for (let d = 1; d <= totalDays; d++) {
-        dates.push(y+"-"+String(m+1).padStart(2,"0")+"-"+String(d).padStart(2,"0"));
-    }
-    // 平行讀取整月輔導紀錄
-    const results = await Promise.all(dates.map(ds => loadCounsel(ds)));
-    const entries = {};
-    dates.forEach((ds, i) => {
-        if (results[i].length > 0) entries[ds] = results[i];
-    });
-    return entries;
-}
 // ── 民國學年度顯示（僅供顯示，禁止寫入任何資料鑰匙或儲存格式）──────────────
 function rocSemester(d) {
     var dt = d ? new Date(d) : new Date();
@@ -6515,7 +6492,6 @@ function ArchiveView({ idbKeys, idbGet, idbSet, groups, schoolYear, className, s
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(false);
   const [yearList, setYearList] = useState([]);
-  const [activeTab, setActiveTab] = useState('stats'); // 'stats' | 'roster'
   const [fsLoaded, setFsLoaded] = useState(false); // 是否已從 Firestore 讀取
   const [archiveMeta, setArchiveMeta] = useState(null); // { archivedAt, source } 目前學年封存狀態
   // 歷年檔案清單：以實際班級清單為主（classes 有雲端備份），再併入舊版 yearRecords
@@ -6724,7 +6700,6 @@ function ArchiveView({ idbKeys, idbGet, idbSet, groups, schoolYear, className, s
       });
       const hwCount = {};      // 各作業繳交次數
       const absentMap = {};    // 各學生請假天數
-      const groupSnapshots = {};  // 每月分組快照（從資料推算）
       let totalDays = 0;
       let totalAbsent = 0;
 
@@ -7277,7 +7252,6 @@ function ArchiveView({ idbKeys, idbGet, idbSet, groups, schoolYear, className, s
     }
   }
 
-  const accent = isNerv ? '#ff6600' : '#1e3a5f';
   const cardStyle = {
     background: isNerv ? 'rgba(255,102,0,.05)' : '#fff',
     border: isNerv ? '1px solid rgba(255,102,0,.3)' : '1px solid #e8edf5',
@@ -7910,18 +7884,18 @@ function SettingsView({ groups, saveGroups, groupVersions, saveGroupVersions, sa
         React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 10, marginBottom: 16 } },
             React.createElement("button", { onClick: onClose, style: { background: nerv ? "rgba(255,102,0,.1)" : "rgba(30,58,95,.1)", border: "none", color: nerv ? "#ff6600" : "#1e3a5f", padding: "6px 14px", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 700 } }, nerv ? "\u25C4 RETURN" : "\u2190 \u8FD4\u56DE"),
             React.createElement("span", { style: { fontSize: 18, fontWeight: 900, color: nerv ? "#ff6600" : "#1e3a5f", flex: 1 } }, nerv ? "\u2699 SYSTEM CONFIG" : "\u2699\uFE0F \u73ED\u7D1A\u8A2D\u5B9A")),
-        React.createElement("div", { className:"settings-tabbar", style: { display: "flex", gap: 8, marginBottom: 16 } },
-            React.createElement("button", { onClick: function(){ setSettingsTab('class'); }, style: { flex: 1, padding: "10px 0", border: "none", borderRadius: 10, cursor: "pointer", fontWeight: 800, fontSize: 14, fontFamily: "inherit",
+        React.createElement("div", { className:"settings-tabbar", role:"tablist", 'aria-label':"班級設定分類", style: { display: "flex", gap: 8, marginBottom: 16 } },
+            React.createElement("button", { type:"button", role:"tab", className:"settings-tab-btn", 'aria-selected':settingsTab === 'class', onClick: function(){ if(settingsTab !== 'class') setSettingsTab('class'); }, style: { flex: 1, padding: "10px 0", border: "none", borderRadius: 10, cursor: "pointer", fontWeight: 800, fontSize: 14, fontFamily: "inherit",
                 background: settingsTab === 'class' ? (nerv ? "#ff6600" : "#1e3a5f") : (nerv ? "rgba(255,102,0,.1)" : "#eef2f8"),
                 color: settingsTab === 'class' ? "#fff" : (nerv ? "rgba(255,102,0,.6)" : "#6a8aaa"),
                 boxShadow: settingsTab === 'class' ? "0 2px 8px rgba(0,0,0,.2)" : "none"
             } }, nerv ? "\u25A6 CLASS" : "\uD83C\uDFEB \u73ED\u7D1A"),
-            React.createElement("button", { onClick: function(){ setSettingsTab('group'); }, style: { flex: 1, padding: "10px 0", border: "none", borderRadius: 10, cursor: "pointer", fontWeight: 800, fontSize: 14, fontFamily: "inherit",
+            React.createElement("button", { type:"button", role:"tab", className:"settings-tab-btn", 'aria-selected':settingsTab === 'group', onClick: function(){ if(settingsTab !== 'group') setSettingsTab('group'); }, style: { flex: 1, padding: "10px 0", border: "none", borderRadius: 10, cursor: "pointer", fontWeight: 800, fontSize: 14, fontFamily: "inherit",
                 background: settingsTab === 'group' ? (nerv ? "#ff6600" : "#1e3a5f") : (nerv ? "rgba(255,102,0,.1)" : "#eef2f8"),
                 color: settingsTab === 'group' ? "#fff" : (nerv ? "rgba(255,102,0,.6)" : "#6a8aaa"),
                 boxShadow: settingsTab === 'group' ? "0 2px 8px rgba(0,0,0,.2)" : "none"
             } }, nerv ? "\u25A6 GROUPS" : "\uD83D\uDC65 \u7D44\u5225"),
-            React.createElement("button", { onClick: function(){ setSettingsTab('officer'); }, style: { flex: 1, padding: "10px 0", border: "none", borderRadius: 10, cursor: "pointer", fontWeight: 800, fontSize: 14, fontFamily: "inherit",
+            React.createElement("button", { type:"button", role:"tab", className:"settings-tab-btn", 'aria-selected':settingsTab === 'officer', onClick: function(){ if(settingsTab !== 'officer') setSettingsTab('officer'); }, style: { flex: 1, padding: "10px 0", border: "none", borderRadius: 10, cursor: "pointer", fontWeight: 800, fontSize: 14, fontFamily: "inherit",
                 background: settingsTab === 'officer' ? (nerv ? "#ff6600" : "#1e3a5f") : (nerv ? "rgba(255,102,0,.1)" : "#eef2f8"),
                 color: settingsTab === 'officer' ? "#fff" : (nerv ? "rgba(255,102,0,.6)" : "#6a8aaa"),
                 boxShadow: settingsTab === 'officer' ? "0 2px 8px rgba(0,0,0,.2)" : "none"
@@ -8374,16 +8348,6 @@ function App() {
         }
         // 找不到（日期比所有版本都早）→ 用最舊的版本
         return withRosterGroups(sorted[sorted.length-1].groups);
-    }
-    // 取得目前（今天）適用的版本，作為「目前使用中版本」
-    function getCurrentGroupVersion() {
-        if (!groupVersions || groupVersions.length === 0) return null;
-        var sorted = groupVersions.slice().sort(function(a,b){ return b.effectiveDate.localeCompare(a.effectiveDate); });
-        var today = new Date().toISOString().slice(0,10);
-        for (var i = 0; i < sorted.length; i++) {
-            if (sorted[i].effectiveDate <= today) return sorted[i];
-        }
-        return sorted[sorted.length-1];
     }
     // 儲存組別版本（按班級），並同步更新 groups（目前使用中版本的內容，供其他既有邏輯即時使用）
     function saveGroupVersions(versions, classId) {
@@ -9368,7 +9332,6 @@ function App() {
     const [wpPlans, setWpPlans] = useState([]);
     const [wpWeekStart, setWpWeekStart] = useState('');
     const [wpDays, setWpDays] = useState({});
-    const [wpInputOpen, setWpInputOpen] = useState(false);
     const [wpInputDay, setWpInputDay] = useState(function(){ return readUpdateDraftValue('wpInputDay', ''); });
     const [wpInputType, setWpInputType] = useState(function(){ return readUpdateDraftValue('wpInputType', 'hw'); });
     const [wpInputText, setWpInputText] = useState(function(){ return readUpdateDraftValue('wpInputText', ''); });
@@ -9680,13 +9643,30 @@ function App() {
         var scope = window.LIMUStorageScope;
         if (!scope || !scope.setUid) return true;
         var result = scope.setUid(uid);
-        try {
-            if (scope.hydrate) await scope.hydrate(uid);
-            await migrateLegacyIdbForCurrentUser();
-        } catch(eMigration) {
-            if (result && result.changed) scope.clearUid();
-            showError('本機資料分區尚未完成，為避免讀錯帳號已停止登入。\n\n' + String(eMigration && eMigration.message || eMigration), '#1a1a0a');
-            return false;
+        // v20.40：先確認 IndexedDB 到底能不能用。
+        // 舊版把 hydrate／搬移失敗一律當成致命錯誤擋下登入，但在 Safari 無痕模式、
+        // 儲存被封鎖或容量耗盡的裝置上，IndexedDB 是整個不可用的——這時 hydrate
+        // 必然 reject，教師會被永遠卡在登入頁，連本機模式都進不去。
+        // 開機路徑（waitForReact）本來就有 .catch → startApp() 的降級，登入路徑沒有。
+        //
+        // IndexedDB 不可用不等於會讀到別人的資料：未 hydrate 時 safeGet 讀的是
+        // scopedLocalKey()，本來就已經按 uid 分區。真正需要擋下的是「IDB 可用、
+        // 但搬移到一半失敗」，那才有跨帳號殘留的風險，下面維持原本的擋登入行為。
+        var idbUsable = true;
+        try { idbUsable = await scope.probeIdb(); } catch(eProbe) { idbUsable = false; }
+        if (idbUsable) {
+            try {
+                if (scope.hydrate) await scope.hydrate(uid);
+                await migrateLegacyIdbForCurrentUser();
+            } catch(eMigration) {
+                if (result && result.changed) scope.clearUid();
+                showError('本機資料分區尚未完成，為避免讀錯帳號已停止登入。\n\n' + String(eMigration && eMigration.message || eMigration), '#1a1a0a');
+                return false;
+            }
+        } else {
+            try {
+                window._writeLog('error', 'IndexedDB 不可用，改以 localStorage 分區運作（無痕模式或儲存被封鎖）');
+            } catch(eLog) {}
         }
         if (result && result.changed) {
             // v20.16.1：標記「即將 reload」，讓 auth 回呼的 finally 不要在這個空檔
@@ -10500,7 +10480,6 @@ function App() {
         return [normalized.valid ? normalized.rocYear + "\u5B78\u5E74\u5EA6" : schoolYear, schoolName, className].filter(Boolean).join(" ");
     }, [schoolYear, schoolName, className]);
     // ── 備份狀態 ──
-    const todayStr = today();
     const [lastSyncTime, setLastSyncTime] = useState(() => safeGet("hw5ren:lastSync") || "");
     const [syncEpoch, setSyncEpoch] = useState(() => Number(safeGet("hw5ren:lastSyncEpoch")) || 0);
     const [backupEpoch, setBackupEpoch] = useState(() => Number(safeGet("hw5ren:lastBackupEpoch")) || 0);
@@ -10525,18 +10504,6 @@ function App() {
             .sort(function(a, b) { return a[0].localeCompare(b[0]); });
     }, [monthDays]);
     // getDriveFilename 已移除
-    function saveYearRecord(year, school, cls) {
-        if (!year && !cls)
-            return;
-        const key = year+"-"+school+"-"+cls;
-        setYearRecords(prev => {
-            const filtered = prev.filter(r => r.year+"-"+r.school+"-"+r.className !== key);
-            const rec = { year, school, className: cls, savedAt: new Date().toLocaleDateString('zh-TW') };
-            const updated = [rec, ...filtered].slice(0, 20);
-            _sl.set('hw5ren:years', JSON.stringify(updated));
-            return updated;
-        });
-    }
     function markSynced() {
         const now = new Date();
         const ts = (now.getMonth()+1)+"/"+now.getDate()+" "+String(now.getHours()).padStart(2,"0")+":"+String(now.getMinutes()).padStart(2,"0");
@@ -11628,9 +11595,6 @@ function App() {
             return cleaned.length === prev.length ? prev : cleaned;
         });
     }
-    function addRow() {
-        updRows(p => [...p, { hwName: "", groupData: {} }]);
-    }
     function delRow(i) { updRows(p => p.filter((_, j) => j !== i)); }
     function rowStatus(ri, gid, groupsOverride) {
         var _a, _b, _c;
@@ -12452,7 +12416,7 @@ function App() {
     var localOnlyMode = !authed && (forceLocalMode || isOffline || typeof firebase === 'undefined' || !firebase.auth);
     if (!authed && !localOnlyMode) {
         var _LOGIN_BG = "./assets/login-background.jpg";
-        return (React.createElement("div", { className: "app", "data-theme": theme, style: { minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: isNerv ? "#050200" : "linear-gradient(160deg,#0d1f3c,#1a3a6e)", padding: "40px 24px max(40px,var(--safe-bottom)) 24px", position: "relative", overflow: "hidden", zIndex: 10, boxSizing: "border-box" } },
+        return (React.createElement("div", { className: "app", "data-theme": theme, style: { minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: isNerv ? "#050200" : "linear-gradient(160deg,#0d1f3c,#1a3a6e)", padding: "calc(40px + var(--safe-top)) 24px max(40px,var(--safe-bottom)) 24px", position: "relative", overflow: "hidden", zIndex: 10, boxSizing: "border-box" } },
             !isNerv && React.createElement("img", {
                 src: _LOGIN_BG, alt: "", draggable: false,
                 style: {
@@ -12773,43 +12737,6 @@ function App() {
                         alert(out);
                         return;
                     } catch(ex) { alert('無法讀取日誌：' + ex); return; }
-                        setImportMsg("🔍 掃描中…");
-                        var _pfx2 = classPrefix();
-                        let idbOk = false, idbKeys_ = [], lsKeys = [];
-                        try {
-                            await idbSet("__diagtest__", "1");
-                            const v = await idbGet("__diagtest__");
-                            idbOk = v === "1";
-                            idbKeys_ = (await idbKeys()).filter(k => k.startsWith(_pfx2+"day:"));
-                        }
-                        catch (e) {
-                            idbOk = false;
-                        }
-                        for (let i = 0; i < _sl.length(); i++) {
-                            const k = _sl.key(i);
-                            if (k === null || k === void 0 ? void 0 : k.startsWith("hw5ren:"+_pfx2))
-                                lsKeys.push(k);
-                        }
-                        setImportMsg("IDB:"+(idbOk?"✅":"❌")+" 資料"+idbKeys_.length+"天 | LS:"+lsKeys.length+"天 | 共"+(idbKeys_.length+lsKeys.length)+"天");
-                        // 若 IDB 有資料但頁面空白，強制重載月份
-                        if (idbKeys_.length > 0) {
-                            await doLoadMonth(curYear, curMonth);
-                        }
-                        // 若 IDB 空但 LS 有資料，搶救
-                        if (idbOk && idbKeys_.length === 0 && lsKeys.length > 0) {
-                            for (const k of lsKeys) {
-                                const ds = k.replace("hw5ren:"+_pfx2, "");
-                                const v = safeGet(k);
-                                if (v)
-                                    try {
-                                        await idbSet(_pfx2+"day:"+ds, v);
-                                    }
-                                    catch (_a) { }
-                            }
-                            await doLoadMonth(curYear, curMonth);
-                            setImportMsg("✅ 已從本機搶救 "+lsKeys.length+" 天！");
-                        }
-                        setTimeout(() => setImportMsg(""), 8000);
                     } }, "🔍 診斷"),
                 React.createElement("button", { className: "excel-btn day-secondary-tool", "data-day-tool":"card-scan", onClick: async () => {
                     // 獎卡資料掃描（診斷用，僅讀取，不寫入任何資料）
@@ -13067,7 +12994,7 @@ function App() {
                             saveSchoolCalendar(next); setDayEventModal(false); setDayEventInput('');
                         }} }),
                     React.createElement("div", { style:{ display:"flex", gap:10 } },
-                        React.createElement("button", { style:{ flex:1, padding:"12px", border:"1.5px solid #ce93d8", borderRadius:10, minHeight:48, background:"#fff", color:(nerv?"#ff8844":"#1e3a5f"), cursor:"pointer", fontFamily:"inherit", fontWeight:700, fontSize:14 },
+                        React.createElement("button", { style:{ flex:1, padding:"12px", border:"1.5px solid #ce93d8", borderRadius:10, minHeight:48, background:"#fff", color:(isNerv?"#ff8844":"#1e3a5f"), cursor:"pointer", fontFamily:"inherit", fontWeight:700, fontSize:14 },
                             onClick:function(){ setDayEventModal(false); setDayEventInput(''); } }, "\u53D6\u6D88"),
                         React.createElement("button", { style:{ flex:1, padding:"10px", border:"none", borderRadius:10, background: dayEventInput.trim() ? "#1e3a5f" : "#aab8cc", color:"#fff", cursor: dayEventInput.trim() ? "pointer" : "not-allowed", fontFamily:"inherit", fontWeight:700, fontSize:14 },
                             disabled: !dayEventInput.trim(),
@@ -13272,7 +13199,6 @@ function App() {
                     ? React.createElement("div", { className: "slip-empty-label" }, isNerv ? "// NO SLIPS //" : "\u4ECA\u65E5\u5C1A\u7121\u56DE\u689D\uFF0C\u9EDE\u300C+ \u65B0\u589E\u300D\u5EFA\u7ACB")
                     : daySlips.map(function(slip, si) {
                         var isOpen = slipOpenIdx === si;
-                        var paidArr = [...slip.paid].sort(function(a,b){return a-b;});
                         var unpaidArr = ALL_MEMBERS.filter(function(n){ return !slip.paid.has(n); }).sort(function(a,b){return a-b;});
                         return React.createElement("div", { key: si, className: "slip-row-wrap"+(isOpen?" slip-open":"") },
                             React.createElement("div", { className: "slip-hw-row", onClick: function(){ setSlipOpenIdx(isOpen ? null : si); } },
@@ -15631,8 +15557,8 @@ function App() {
   var updateRegistration = null;
   var reloadingForUpdate = false;
   var updateActivationRequested = false;
-  var SW_BUILD_ID = 'limu-teacher-v20-36-20260801';
-  var SW_CACHE_NAME = 'hw-tracker-v20-36';
+  var SW_BUILD_ID = 'limu-teacher-v20-40-20260801';
+  var SW_CACHE_NAME = 'hw-tracker-v20-40';
   var SW_URL = './sw.js?build=' + encodeURIComponent(SW_BUILD_ID);
   var lastUpdateCheck = 0;
   // v20.16：checkBuildConsistency 本來就有 15 秒節流，但 reg.update() 沒有。

@@ -1,5 +1,18 @@
 rules_version = '2';
 
+// ⚠️ 部署前必讀（v20.39）
+// 這份檔案只描述「LIMU 需要的最小權限」。Firestore 沒有規則合併機制：
+// 在 Firebase Console 或 CLI 部署後，它會【整份取代】專案現有規則。
+// Venus OS 與獎卡系統（Venus Card）與 LIMU 共用同一個 Firebase 專案，
+// 若直接把這份檔案部署上去，兩者未列在下方的集合會因「預設拒絕」而全部失效。
+//
+// 正確做法：把下方 match 區塊「貼進」專案現行的規則檔，一起部署；
+// 不要單獨部署本檔。
+//
+// 註：Firestore 的規則是 OR 運算——任一 match 允許即放行，
+// `allow ... : if false` 不會反過來否決其他規則。因此本檔的 deny
+// 只在「本檔就是專案唯一規則」時才真的擋住東西。
+
 service cloud.firestore {
   match /databases/{database}/documents {
     function signedInAs(userId) {
@@ -11,12 +24,19 @@ service cloud.firestore {
       allow read, write: if signedInAs(userId);
     }
 
-    // 本 App 只讀取自己的獎卡資料；寫入應由獎卡系統或後端管理。
-    match /vc-card-users/{userId} {
+    // LIMU 只讀取自己的獎卡資料（診斷用）。
+    // v20.39：加上 {document=**}，否則只涵蓋單一文件、不含子集合，
+    // 獎卡系統日後改用子集合時 LIMU 這邊會拿到 permission-denied。
+    // 寫入權限交由獎卡系統自己的規則負責——請勿在此放行，
+    // 但也請確認獎卡系統的規則有一起部署，否則它會寫不進來。
+    match /vc-card-users/{userId}/{document=**} {
       allow read: if signedInAs(userId);
       allow write: if false;
     }
 
+    // 其餘路徑不在 LIMU 的職責範圍內。
+    // Firestore 本來就預設拒絕，這條僅作為文件說明，
+    // 不會影響 Venus OS／獎卡系統自己的 match 規則。
     match /{document=**} {
       allow read, write: if false;
     }

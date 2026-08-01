@@ -2,10 +2,10 @@
 // v20.16：修正 SW 預快取涵蓋範圍、素材容錯與快取比對；延續 v20.15 的 VENUS 圖示與全螢幕開場。
 
 const CACHE_PREFIX = 'hw-tracker-';
-const CACHE_NAME = 'hw-tracker-v20-36';
-const BUILD_ID = 'limu-teacher-v20-36-20260801';
+const CACHE_NAME = 'hw-tracker-v20-40';
+const BUILD_ID = 'limu-teacher-v20-40-20260801';
 // 頁面會核對這個完整字面標記；不可改回由兩段字串拼接，否則會再次誤報。
-const DEPLOYMENT_MARKER = 'limu-teacher-v20-36-20260801|hw-tracker-v20-36';
+const DEPLOYMENT_MARKER = 'limu-teacher-v20-40-20260801|hw-tracker-v20-40';
 // 用來判斷「這是一份完整的 App shell」，不限定版本。
 const BUILD_ID_PATTERN = /limu-teacher-v\d+-\d+-\d{8}/;
 const PRECACHE_URLS = [
