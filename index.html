@@ -1351,7 +1351,16 @@
         }
 
         .spl-img-wrap {
-          position:absolute; inset:0; z-index:2;
+          /* v20.45：實機量到 documentElement.clientHeight 只有 873pt，
+             而開場層（height:100dvh）是 932pt。這一層原本用 inset:0，圖片用
+             height:100%，兩者都是靠推算得到高度，WebKit 在這台裝置上是照
+             873 算的，沒有跟著父層的 932——底部就空出 59pt，露出開場層自己的
+             背景色。改成直接指定 dvh，完全不經過百分比／偏移量推算。 */
+          position:absolute;
+          top:0; left:0; right:0;
+          height:100vh;
+          height:100dvh;
+          z-index:2;
           overflow:hidden;
           animation:spl-img-reveal .9s ease-out forwards;
         }
@@ -1362,7 +1371,10 @@
           animation:spl-img-zoom-out .55s ease-in forwards !important;
         }
         .spl-img-wrap img {
-          width:100%; height:100%;
+          /* 同上：height:100% 會落回 873，直接用 dvh。 */
+          width:100%;
+          height:100vh;
+          height:100dvh;
           object-fit:cover;
           object-position:center center;
           display:block;
@@ -4809,10 +4821,10 @@ const PRESET_HW = ["國習", "數習", "國乙", "國甲", "聽寫", "小日記"
 const NO_EXEMPT_HW = new Set(["聯絡簿", "國卷", "數卷"]); // 這些作業不顯示抵免
 const DUAL_HW = new Set(["國卷", "數卷", "聽寫"]); // 雙排作業（訂正+簽名）
 const WEEKDAYS = ["日", "一", "二", "三", "四", "五", "六"];
-const APP_VERSION = "20.44.0";
+const APP_VERSION = "20.45.0";
 const APP_BUILD_DATE = "2026-08-01";
-const APP_BUILD_ID = "limu-teacher-v20-44-20260801";
-const APP_CACHE_NAME = "hw-tracker-v20-44";
+const APP_BUILD_ID = "limu-teacher-v20-45-20260801";
+const APP_CACHE_NAME = "hw-tracker-v20-45";
 window.__LIMU_BUILD__ = Object.freeze({
     appVersion: APP_VERSION,
     buildDate: APP_BUILD_DATE,
@@ -6462,8 +6474,14 @@ function daySummary(rows, groups) {
           var sab = Math.round(parseFloat(getComputedStyle(probe).paddingBottom) || 0);
           var vis = 0;
           try { vis = Math.round((window.visualViewport && window.visualViewport.height) || 0); } catch(e) {}
-          var ovl = 0;
+          var ovl = 0, wrp = 0, imgh = 0;
           try { ovl = Math.round(overlayRef.current ? overlayRef.current.getBoundingClientRect().height : 0); } catch(e) {}
+          try {
+            var wEl = document.querySelector('.spl-img-wrap');
+            var iEl = document.querySelector('.spl-img-wrap img');
+            wrp = Math.round(wEl ? wEl.getBoundingClientRect().height : 0);
+            imgh = Math.round(iEl ? iEl.getBoundingClientRect().height : 0);
+          } catch(e) {}
           var standalone = (window.navigator.standalone === true) ? 'SA' :
             ((window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) ? 'DM' : 'BR');
           setDiag(
@@ -6473,6 +6491,7 @@ function daySummary(rows, groups) {
             ' vis' + vis + '\n' +
             'dvh' + dvh + ' svh' + svh + ' lvh' + lvh +
             ' ovl' + ovl + '\n' +
+            'wrp' + wrp + ' img' + imgh + ' ' +
             'sat' + sat + ' sab' + sab + ' dpr' + (window.devicePixelRatio || 0) + ' ' + standalone
           );
         } catch(e) {
@@ -15677,8 +15696,8 @@ function App() {
   var updateRegistration = null;
   var reloadingForUpdate = false;
   var updateActivationRequested = false;
-  var SW_BUILD_ID = 'limu-teacher-v20-44-20260801';
-  var SW_CACHE_NAME = 'hw-tracker-v20-44';
+  var SW_BUILD_ID = 'limu-teacher-v20-45-20260801';
+  var SW_CACHE_NAME = 'hw-tracker-v20-45';
   var SW_URL = './sw.js?build=' + encodeURIComponent(SW_BUILD_ID);
   var lastUpdateCheck = 0;
   // v20.16：checkBuildConsistency 本來就有 15 秒節流，但 reg.update() 沒有。
