@@ -1324,10 +1324,14 @@
              縮短了一個瀏海。改用 dvh：dvh 相對「視窗」而非包含區塊，不管祖先
              怎麼變都一定滿版。背景同時改成與 html/body 一致的 #07040f，
              萬一還有殘縫也看不出來。 */
+          /* v20.46：改用 lvh。實機兩次量測顯示 dvh 在啟動瞬間不穩定
+             （第一次 932、第二次 873），而 lvh 兩次都是 932。
+             lvh 是「工具列全收起時的最大視窗高度」，在獨立 App 模式下
+             就等於整個螢幕，不受啟動當下安全區尚未定案的影響。 */
           position:fixed;
           top:0; left:0; right:0;
           height:100vh;
-          height:100dvh;
+          height:100lvh;
           z-index:999999;
           background:#07040f;
           overflow:hidden;
@@ -1359,7 +1363,7 @@
           position:absolute;
           top:0; left:0; right:0;
           height:100vh;
-          height:100dvh;
+          height:100lvh;
           z-index:2;
           overflow:hidden;
           animation:spl-img-reveal .9s ease-out forwards;
@@ -1371,10 +1375,10 @@
           animation:spl-img-zoom-out .55s ease-in forwards !important;
         }
         .spl-img-wrap img {
-          /* 同上：height:100% 會落回 873，直接用 dvh。 */
+          /* 同上：height:100% 會落回啟動當下的短視窗值，直接用 lvh。 */
           width:100%;
           height:100vh;
-          height:100dvh;
+          height:100lvh;
           object-fit:cover;
           object-position:center center;
           display:block;
@@ -4821,10 +4825,10 @@ const PRESET_HW = ["國習", "數習", "國乙", "國甲", "聽寫", "小日記"
 const NO_EXEMPT_HW = new Set(["聯絡簿", "國卷", "數卷"]); // 這些作業不顯示抵免
 const DUAL_HW = new Set(["國卷", "數卷", "聽寫"]); // 雙排作業（訂正+簽名）
 const WEEKDAYS = ["日", "一", "二", "三", "四", "五", "六"];
-const APP_VERSION = "20.45.0";
+const APP_VERSION = "20.46.0";
 const APP_BUILD_DATE = "2026-08-01";
-const APP_BUILD_ID = "limu-teacher-v20-45-20260801";
-const APP_CACHE_NAME = "hw-tracker-v20-45";
+const APP_BUILD_ID = "limu-teacher-v20-46-20260801";
+const APP_CACHE_NAME = "hw-tracker-v20-46";
 window.__LIMU_BUILD__ = Object.freeze({
     appVersion: APP_VERSION,
     buildDate: APP_BUILD_DATE,
@@ -6498,6 +6502,19 @@ function daySummary(rows, groups) {
           setDiag('measure failed: ' + String(e && e.message || e));
         }
         if (probe && probe.parentNode) probe.parentNode.removeChild(probe);
+        // v20.46：1.2 秒後再量一次。若兩次數字不同，就證實啟動瞬間的視窗
+        // 尺寸尚未定案（本機已觀察到 dvh 在兩次啟動間 932／873 跳動）。
+        var t = setTimeout(function() {
+          try {
+            var el = document.querySelector('.spl-img-wrap');
+            setDiag(function(prev) {
+              return prev + '\nlate inn' + Math.round(window.innerHeight) +
+                ' cli' + Math.round(document.documentElement.clientHeight) +
+                ' wrp' + Math.round(el ? el.getBoundingClientRect().height : 0);
+            });
+          } catch(e) {}
+        }, 1200);
+        return function(){ clearTimeout(t); };
       }, []);
 
       React.useEffect(function() {
@@ -15696,8 +15713,8 @@ function App() {
   var updateRegistration = null;
   var reloadingForUpdate = false;
   var updateActivationRequested = false;
-  var SW_BUILD_ID = 'limu-teacher-v20-45-20260801';
-  var SW_CACHE_NAME = 'hw-tracker-v20-45';
+  var SW_BUILD_ID = 'limu-teacher-v20-46-20260801';
+  var SW_CACHE_NAME = 'hw-tracker-v20-46';
   var SW_URL = './sw.js?build=' + encodeURIComponent(SW_BUILD_ID);
   var lastUpdateCheck = 0;
   // v20.16：checkBuildConsistency 本來就有 15 秒節流，但 reg.update() 沒有。
