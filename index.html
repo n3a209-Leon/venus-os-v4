@@ -1282,8 +1282,14 @@
           100% { opacity:1; filter:brightness(1) saturate(1); }
         }
         @keyframes spl-odyssey-drift {
-          0%   { transform:scale(1.085) translate3d(0,-.6%,0); }
-          100% { transform:scale(1.015) translate3d(0,0,0); }
+          /* v20.49：移除 translate3d，只保留縮放。位移是 3D transform，
+             會強制提升合成層，正是裁切範圍過期的來源。 */
+          0%   { transform:scale(1.085); }
+          100% { transform:scale(1.015); }
+        }
+        @keyframes spl-sea-glow {
+          0%,100% { filter:brightness(1) saturate(1); }
+          50%     { filter:brightness(1.05) saturate(1.1); }
         }
         @keyframes spl-img-zoom-out {
           0%   { opacity:1; transform:scale(1); }
@@ -1328,10 +1334,9 @@
              （第一次 932、第二次 873），而 lvh 兩次都是 932。
              lvh 是「工具列全收起時的最大視窗高度」，在獨立 App 模式下
              就等於整個螢幕，不受啟動當下安全區尚未定案的影響。 */
-          position:fixed;
-          top:0; left:0; right:0;
-          height:100vh;
-          height:100lvh;
+          /* v20.49：回到 inset:0，與獎卡系統（同一台手機上可以畫滿 932）一致。
+             v20.41～v20.47 換過 dvh／lvh 都不是問題所在。 */
+          position:fixed; inset:0;
           z-index:999999;
           background:#07040f;
           overflow:hidden;
@@ -1354,39 +1359,38 @@
             radial-gradient(ellipse at center,transparent 52%,rgba(1,4,7,.22) 100%);
         }
 
+        /* ── v20.49：比照獎卡系統的開場結構 ──────────────────────────────
+           獎卡系統在同一台 iPhone 上可以畫滿整個 932pt，用的就是最單純的
+           inset:0 + height:100%。逐項比對後，LIMU 這邊多出來的只有一件事：
+           圖片帶著 will-change:transform 與 translate3d 動畫，會在啟動極早期
+           被提升成獨立的 GPU 合成層。那一層的裁切範圍在建立當下就固定
+           （當時視窗還是 873），之後視窗長到 932 也不會重新光柵化——
+           排版量到 932、畫面卻只畫到 873，正是這個原因。
+
+           因此把結構改成與獎卡系統一致：
+             圖層  → 承接 transform 動畫（只縮放，不位移）
+             圖片  → 只留 filter 動畫，不再有 will-change 與 translate3d
+           視覺效果維持，但圖片不再獨立成層。 */
         .spl-img-wrap {
-          /* v20.45：實機量到 documentElement.clientHeight 只有 873pt，
-             而開場層（height:100dvh）是 932pt。這一層原本用 inset:0，圖片用
-             height:100%，兩者都是靠推算得到高度，WebKit 在這台裝置上是照
-             873 算的，沒有跟著父層的 932——底部就空出 59pt，露出開場層自己的
-             背景色。改成直接指定 dvh，完全不經過百分比／偏移量推算。 */
-          position:absolute;
-          top:0; left:0; right:0;
-          height:100vh;
-          height:100lvh;
+          position:absolute; inset:0;
           z-index:2;
           overflow:hidden;
-          animation:spl-img-reveal .9s ease-out forwards;
+          animation:
+            spl-img-reveal .9s ease-out forwards,
+            spl-odyssey-drift 3.15s cubic-bezier(.18,.68,.25,1) both;
         }
         .spl-img-wrap.spl-quick {
-          animation-duration:.45s;
+          animation-duration:.45s,1.35s;
         }
         .spl-img-wrap.spl-img-exit {
           animation:spl-img-zoom-out .55s ease-in forwards !important;
         }
         .spl-img-wrap img {
-          /* 同上：height:100% 會落回啟動當下的短視窗值，直接用 lvh。 */
-          width:100%;
-          height:100vh;
-          height:100lvh;
+          width:100%; height:100%;
           object-fit:cover;
           object-position:center center;
           display:block;
-          animation:spl-odyssey-drift 3.15s cubic-bezier(.18,.68,.25,1) both;
-          will-change:transform;
-        }
-        .spl-img-wrap.spl-quick img {
-          animation-duration:1.35s;
+          animation:spl-sea-glow 3.4s ease-in-out infinite;
         }
 
         /* 對準原圖日蝕，僅加強外緣光，不蓋住人物。 */
@@ -1468,6 +1472,16 @@
         /* v20.43：開場左上角的版本標記。實機回報問題時，光看畫面無法判斷
            手機上跑的到底是哪一版（PWA 的 Service Worker 會沿用舊快取），
            前兩次的黑框回報就卡在這裡。標記做得很淡，平常不干擾。 */
+        /* v20.48：開場期間把「網頁碰不到的那條」染成圖片底緣色。
+           實機量測（v20.47）顯示 inn / cli / vis / dvh 四項在這次啟動全是 873，
+           1.2 秒後重量仍是 873——也就是網頁的可視區域真的只有 873pt，
+           螢幕下方 59pt 不屬於網頁，是 iOS 用頁面底色自己填的。
+           那塊區域無論用什麼 CSS 都畫不到（wrp932 代表圖層確實有 932，
+           但超出 873 的部分在畫面外）。
+           唯一能做的是讓它看不出來：把 html 底色換成圖片底緣的顏色。
+           #202024 取自實機截圖最後 4pt 的全寬平均。
+           行內 style 用 !important 蓋過；開場結束即還原，不影響 App 畫面。 */
+        html.limu-splash-bg, html.limu-splash-bg body { background:#202024!important; }
         .spl-build {
           position:absolute;
           left:max(14px,env(safe-area-inset-left,0px));
@@ -4825,10 +4839,10 @@ const PRESET_HW = ["國習", "數習", "國乙", "國甲", "聽寫", "小日記"
 const NO_EXEMPT_HW = new Set(["聯絡簿", "國卷", "數卷"]); // 這些作業不顯示抵免
 const DUAL_HW = new Set(["國卷", "數卷", "聽寫"]); // 雙排作業（訂正+簽名）
 const WEEKDAYS = ["日", "一", "二", "三", "四", "五", "六"];
-const APP_VERSION = "20.47.0";
+const APP_VERSION = "20.49.0";
 const APP_BUILD_DATE = "2026-08-01";
-const APP_BUILD_ID = "limu-teacher-v20-47-20260801";
-const APP_CACHE_NAME = "hw-tracker-v20-47";
+const APP_BUILD_ID = "limu-teacher-v20-49-20260801";
+const APP_CACHE_NAME = "hw-tracker-v20-49";
 window.__LIMU_BUILD__ = Object.freeze({
     appVersion: APP_VERSION,
     buildDate: APP_BUILD_DATE,
@@ -6556,6 +6570,12 @@ function daySummary(rows, groups) {
           } catch(e) {}
         }, 1200);
         return function(){ clearTimeout(t); };
+      }, []);
+
+      React.useEffect(function() {
+        var rootEl = document.documentElement;
+        try { rootEl.classList.add('limu-splash-bg'); } catch(e) {}
+        return function() { try { rootEl.classList.remove('limu-splash-bg'); } catch(e) {} };
       }, []);
 
       React.useEffect(function() {
@@ -15754,8 +15774,8 @@ function App() {
   var updateRegistration = null;
   var reloadingForUpdate = false;
   var updateActivationRequested = false;
-  var SW_BUILD_ID = 'limu-teacher-v20-47-20260801';
-  var SW_CACHE_NAME = 'hw-tracker-v20-47';
+  var SW_BUILD_ID = 'limu-teacher-v20-49-20260801';
+  var SW_CACHE_NAME = 'hw-tracker-v20-49';
   var SW_URL = './sw.js?build=' + encodeURIComponent(SW_BUILD_ID);
   var lastUpdateCheck = 0;
   // v20.16：checkBuildConsistency 本來就有 15 秒節流，但 reg.update() 沒有。
