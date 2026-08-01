@@ -1449,6 +1449,19 @@
           animation:spl-status-blink 1.6s ease-in-out infinite;
           min-height:14px;
         }
+        /* v20.43：開場左上角的版本標記。實機回報問題時，光看畫面無法判斷
+           手機上跑的到底是哪一版（PWA 的 Service Worker 會沿用舊快取），
+           前兩次的黑框回報就卡在這裡。標記做得很淡，平常不干擾。 */
+        .spl-build {
+          position:absolute;
+          left:max(14px,env(safe-area-inset-left,0px));
+          top:max(15px,env(safe-area-inset-top,0px));
+          z-index:7;
+          font-size:9px; letter-spacing:1px;
+          color:rgba(255,242,220,.34);
+          font-family:'Share Tech Mono',monospace;
+          pointer-events:none;
+        }
         .spl-skip {
           position:absolute;
           right:max(14px,env(safe-area-inset-right,0px));
@@ -4786,10 +4799,10 @@ const PRESET_HW = ["國習", "數習", "國乙", "國甲", "聽寫", "小日記"
 const NO_EXEMPT_HW = new Set(["聯絡簿", "國卷", "數卷"]); // 這些作業不顯示抵免
 const DUAL_HW = new Set(["國卷", "數卷", "聽寫"]); // 雙排作業（訂正+簽名）
 const WEEKDAYS = ["日", "一", "二", "三", "四", "五", "六"];
-const APP_VERSION = "20.42.0";
+const APP_VERSION = "20.43.0";
 const APP_BUILD_DATE = "2026-08-01";
-const APP_BUILD_ID = "limu-teacher-v20-42-20260801";
-const APP_CACHE_NAME = "hw-tracker-v20-42";
+const APP_BUILD_ID = "limu-teacher-v20-43-20260801";
+const APP_CACHE_NAME = "hw-tracker-v20-43";
 window.__LIMU_BUILD__ = Object.freeze({
     appVersion: APP_VERSION,
     buildDate: APP_BUILD_DATE,
@@ -6455,7 +6468,13 @@ function daySummary(rows, groups) {
         };
       }, []);
 
-      return React.createElement('div', {
+      // v20.43：改用 portal 直接掛到 document.body。
+      // 開場層原本是 App 的 early return，會落在 #root 底下。只要任何一個祖先
+      // 具備 transform／filter／contain 之類的屬性，position:fixed 的包含區塊
+      // 就會變成那個祖先，若它同時有 overflow:hidden，連 height:100dvh 都會被
+      // 裁掉——這正符合實機量到的「圖只有 932-59=873pt」。portal 讓開場層成為
+      // body 的直接子節點，任何祖先都影響不到它。
+      return ReactDOM.createPortal(React.createElement('div', {
         className: 'spl-overlay' + (exiting ? ' spl-exit' : ''),
         role: 'button',
         tabIndex: 0,
@@ -6485,8 +6504,9 @@ function daySummary(rows, groups) {
           React.createElement('div', { className: 'spl-title-sub' }, 'ODYSSEY TEACHER SYSTEM')
         ),
         React.createElement('div', { className: 'spl-status', 'aria-live': 'polite' }, status),
-        React.createElement('div', { className: 'spl-skip' }, '輕觸進入')
-      );
+        React.createElement('div', { className: 'spl-skip' }, '輕觸進入'),
+        React.createElement('div', { className: 'spl-build' }, 'v' + APP_VERSION)
+      ), document.body);
     }
     // ══ END SPLASH SCREEN ════════════════════════════════════════════════════
 
@@ -15591,8 +15611,8 @@ function App() {
   var updateRegistration = null;
   var reloadingForUpdate = false;
   var updateActivationRequested = false;
-  var SW_BUILD_ID = 'limu-teacher-v20-42-20260801';
-  var SW_CACHE_NAME = 'hw-tracker-v20-42';
+  var SW_BUILD_ID = 'limu-teacher-v20-43-20260801';
+  var SW_CACHE_NAME = 'hw-tracker-v20-43';
   var SW_URL = './sw.js?build=' + encodeURIComponent(SW_BUILD_ID);
   var lastUpdateCheck = 0;
   // v20.16：checkBuildConsistency 本來就有 15 秒節流，但 reg.update() 沒有。
