@@ -1456,11 +1456,14 @@
           position:absolute;
           left:max(14px,env(safe-area-inset-left,0px));
           top:max(15px,env(safe-area-inset-top,0px));
+          right:max(96px,env(safe-area-inset-right,0px));
           z-index:7;
-          font-size:9px; letter-spacing:1px;
-          color:rgba(255,242,220,.34);
+          font-size:9px; letter-spacing:.5px; line-height:1.5;
+          color:rgba(255,242,220,.5);
           font-family:'Share Tech Mono',monospace;
           pointer-events:none;
+          white-space:pre-line;
+          text-shadow:0 1px 4px rgba(0,0,0,.9);
         }
         .spl-skip {
           position:absolute;
@@ -2254,6 +2257,13 @@
           .settings-tab-btn[aria-selected="true"]{pointer-events:none}
           /* Safari 長頁若延後建立內容範圍，手勢會短暫像是拉不動。手機採完整排版。 */
           .archive-wrap,.settings-view{content-visibility:visible;contain-intrinsic-size:none}
+          /* v20.44：班級設定頁「一開始滑不動、之後就正常」。
+             .settings-view 帶著行內樣式 overflowY:auto，等於在會捲動的頁面裡
+             又套了一個捲動容器。iOS 在 touchstart 時必須先決定這一手要交給
+             哪一層捲動，內層是否真的能捲又要等版面算完才知道——這段判斷期間
+             手指是拉不動的，判定完成、交棒給頁面之後就恢復正常。
+             手機端只留頁面這一個捲動層。行內樣式優先權高，必須用 !important。 */
+          .settings-view{overflow:visible!important;-webkit-overflow-scrolling:auto!important}
         }
         @media(prefers-reduced-motion:reduce){
           *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
@@ -4799,10 +4809,10 @@ const PRESET_HW = ["國習", "數習", "國乙", "國甲", "聽寫", "小日記"
 const NO_EXEMPT_HW = new Set(["聯絡簿", "國卷", "數卷"]); // 這些作業不顯示抵免
 const DUAL_HW = new Set(["國卷", "數卷", "聽寫"]); // 雙排作業（訂正+簽名）
 const WEEKDAYS = ["日", "一", "二", "三", "四", "五", "六"];
-const APP_VERSION = "20.43.0";
+const APP_VERSION = "20.44.0";
 const APP_BUILD_DATE = "2026-08-01";
-const APP_BUILD_ID = "limu-teacher-v20-43-20260801";
-const APP_CACHE_NAME = "hw-tracker-v20-43";
+const APP_BUILD_ID = "limu-teacher-v20-44-20260801";
+const APP_CACHE_NAME = "hw-tracker-v20-44";
 window.__LIMU_BUILD__ = Object.freeze({
     appVersion: APP_VERSION,
     buildDate: APP_BUILD_DATE,
@@ -6416,6 +6426,61 @@ function daySummary(rows, groups) {
       var [imgExiting, setImgExiting] = React.useState(false);
       var finishRef = React.useRef(function(){});
 
+      // ── v20.44：實機視窗量測 ────────────────────────────────────────────
+      // 開場圖底部一直少一塊，前兩版分別試過「改用 dvh」與「portal 掛到 body」
+      // 都沒有改變切線位置（實機兩次都量到 872.7pt）。這代表問題不在 CSS 的
+      // 包含區塊，而是這台裝置回報給網頁的視窗高度本身就比螢幕短。
+      // 與其繼續猜，直接在開場畫面把真實數字印出來：
+      //   scr  螢幕高（screen.height）
+      //   inn  window.innerHeight
+      //   cli  documentElement.clientHeight
+      //   vis  visualViewport.height
+      //   dvh  實測 100dvh 等於多少
+      //   svh/lvh 小／大視窗單位
+      //   sat/sab 安全區上／下
+      //   ovl 開場層實際算出來的高度
+      // 一張截圖就能判斷是哪一個環節在少。確認原因後這段會移除。
+      var [diag, setDiag] = React.useState('');
+      var overlayRef = React.useRef(null);
+      React.useEffect(function() {
+        var probe = null;
+        try {
+          probe = document.createElement('div');
+          probe.style.cssText = 'position:fixed;left:-9999px;top:0;width:1px;visibility:hidden;pointer-events:none;';
+          document.body.appendChild(probe);
+          var measure = function(unit) {
+            probe.style.height = unit;
+            var v = probe.getBoundingClientRect().height;
+            return v ? Math.round(v) : 0;
+          };
+          var dvh = measure('100dvh'), svh = measure('100svh'), lvh = measure('100lvh');
+          probe.style.height = '0';
+          probe.style.paddingTop = 'env(safe-area-inset-top,0px)';
+          probe.style.paddingBottom = 'env(safe-area-inset-bottom,0px)';
+          var box = probe.getBoundingClientRect();
+          var sat = Math.round(parseFloat(getComputedStyle(probe).paddingTop) || 0);
+          var sab = Math.round(parseFloat(getComputedStyle(probe).paddingBottom) || 0);
+          var vis = 0;
+          try { vis = Math.round((window.visualViewport && window.visualViewport.height) || 0); } catch(e) {}
+          var ovl = 0;
+          try { ovl = Math.round(overlayRef.current ? overlayRef.current.getBoundingClientRect().height : 0); } catch(e) {}
+          var standalone = (window.navigator.standalone === true) ? 'SA' :
+            ((window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) ? 'DM' : 'BR');
+          setDiag(
+            'scr' + Math.round(window.screen.height) +
+            ' inn' + Math.round(window.innerHeight) +
+            ' cli' + Math.round(document.documentElement.clientHeight) +
+            ' vis' + vis + '\n' +
+            'dvh' + dvh + ' svh' + svh + ' lvh' + lvh +
+            ' ovl' + ovl + '\n' +
+            'sat' + sat + ' sab' + sab + ' dpr' + (window.devicePixelRatio || 0) + ' ' + standalone
+          );
+        } catch(e) {
+          setDiag('measure failed: ' + String(e && e.message || e));
+        }
+        if (probe && probe.parentNode) probe.parentNode.removeChild(probe);
+      }, []);
+
       React.useEffect(function() {
         safeSet('hw5ren:splashSeen', '1');
 
@@ -6475,6 +6540,7 @@ function daySummary(rows, groups) {
       // 裁掉——這正符合實機量到的「圖只有 932-59=873pt」。portal 讓開場層成為
       // body 的直接子節點，任何祖先都影響不到它。
       return ReactDOM.createPortal(React.createElement('div', {
+        ref: overlayRef,
         className: 'spl-overlay' + (exiting ? ' spl-exit' : ''),
         role: 'button',
         tabIndex: 0,
@@ -6505,7 +6571,7 @@ function daySummary(rows, groups) {
         ),
         React.createElement('div', { className: 'spl-status', 'aria-live': 'polite' }, status),
         React.createElement('div', { className: 'spl-skip' }, '輕觸進入'),
-        React.createElement('div', { className: 'spl-build' }, 'v' + APP_VERSION)
+        React.createElement('div', { className: 'spl-build' }, 'v' + APP_VERSION + (diag ? '\n' + diag : ''))
       ), document.body);
     }
     // ══ END SPLASH SCREEN ════════════════════════════════════════════════════
@@ -15611,8 +15677,8 @@ function App() {
   var updateRegistration = null;
   var reloadingForUpdate = false;
   var updateActivationRequested = false;
-  var SW_BUILD_ID = 'limu-teacher-v20-43-20260801';
-  var SW_CACHE_NAME = 'hw-tracker-v20-43';
+  var SW_BUILD_ID = 'limu-teacher-v20-44-20260801';
+  var SW_CACHE_NAME = 'hw-tracker-v20-44';
   var SW_URL = './sw.js?build=' + encodeURIComponent(SW_BUILD_ID);
   var lastUpdateCheck = 0;
   // v20.16：checkBuildConsistency 本來就有 15 秒節流，但 reg.update() 沒有。
