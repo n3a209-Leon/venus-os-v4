@@ -1357,10 +1357,19 @@
         .spl-overlay::after {
           content:""; position:absolute; inset:0; z-index:4; pointer-events:none;
           background:
-            /* v20.31：底部原本收在 rgba(2,5,8,.82)，近乎不透明，在本就偏暗的
-               海面上會形成一塊實心黑帶。大幅減弱後改由標題自身的文字陰影
-               維持可讀性，開場即為整頁滿版影像。 */
-            linear-gradient(180deg,rgba(2,5,9,.18) 0%,transparent 22%,transparent 70%,rgba(2,6,10,.14) 86%,rgba(2,5,8,.34) 100%),
+            /* v20.51：底部收邊。
+               iOS 每次啟動給網頁的畫布高度會在 873 與 932 之間隨機跳
+               （lvh 恆為 932，但 inn/cli/vis/dvh 有時全部只有 873）。
+               抽到 873 的那次，螢幕下方 59pt 不屬於網頁，由 iOS 用頁面底色填，
+               任何 CSS 都畫不到——這一點在 v20.48 就已確認。
+
+               實測那條的顏色是 rgb(26,26,28)，圖片底緣是 rgb(29,28,31)，
+               只差 3 階；看得出來的不是色差，是「水波紋理突然變成平面」。
+               因此讓影像在底部自然收成同一個平面色：抽到 873 時銜接無縫，
+               抽到 932 時就只是一道收邊暗角。
+               v20.31 曾因為這裡收得太重（.82）而拿掉，這次收的是與 html
+               底色一致的 rgb(26,26,28)，不是純黑，且起點壓到 78% 才開始。 */
+            linear-gradient(180deg,rgba(2,5,9,.18) 0%,transparent 22%,transparent 62%,rgba(26,26,28,.22) 78%,rgba(26,26,28,.66) 92%,rgb(26,26,28) 100%),
             radial-gradient(ellipse at center,transparent 52%,rgba(1,4,7,.22) 100%);
         }
 
@@ -1495,7 +1504,7 @@
            唯一能做的是讓它看不出來：把 html 底色換成圖片底緣的顏色。
            #202024 取自實機截圖最後 4pt 的全寬平均。
            行內 style 用 !important 蓋過；開場結束即還原，不影響 App 畫面。 */
-        html.limu-splash-bg, html.limu-splash-bg body { background:#1a1a1d!important; }
+        html.limu-splash-bg, html.limu-splash-bg body { background:rgb(26,26,28)!important; }
         .spl-build {
           position:absolute;
           left:max(14px,env(safe-area-inset-left,0px));
@@ -4015,6 +4024,142 @@
   </script>
 </head>
 <body style="background:#07040f;margin:0;">
+
+<!-- ══ 開場畫面（v20.52：改為靜態 HTML，與獎卡系統同構）════════════════════
+     原本開場是 React 元件、等 JS 載入後才用 createPortal 掛到 body。
+     那代表它是在「iOS 已經決定好這次啟動要給網頁多少畫布」之後才建立的，
+     而 iOS 每次給的高度會在 873pt 與 932pt 之間跳（實機量測 lvh 恆為 932，
+     inn/cli/vis/dvh 有時全是 873）。獎卡系統的開場是寫死在 body 裡的靜態元素，
+     從第一次繪製就存在、跟著文件一起被佈局，在同一台手機上一直是滿版的。
+     這一版把 LIMU 的開場改成同樣的結構：markup 直接放在 body，
+     CSS 立即生效，JS 只負責更新狀態文字與退場。 ══════════════════════════ -->
+<div id="spl-static" class="spl-overlay" role="button" tabindex="0" aria-label="VENUS OS 開場動畫，輕觸進入">
+  <div class="spl-dust">
+    <div class="spl-particle" style="left:54%;bottom:26%;--dur:7.2s;--delay:0.9s;--travel:-111px;--op:0.18;width:1px;height:1px"></div>
+    <div class="spl-particle" style="left:35%;bottom:26%;--dur:9.2s;--delay:3.5s;--travel:-91px;--op:0.38;width:2px;height:2px"></div>
+    <div class="spl-particle" style="left:28%;bottom:28%;--dur:10.3s;--delay:2.9s;--travel:-181px;--op:0.38;width:2px;height:2px"></div>
+    <div class="spl-particle" style="left:52%;bottom:15%;--dur:6.9s;--delay:3.3s;--travel:-188px;--op:0.29;width:1px;height:1px"></div>
+    <div class="spl-particle" style="left:94%;bottom:35%;--dur:10.1s;--delay:0.4s;--travel:-120px;--op:0.25;width:2px;height:2px"></div>
+    <div class="spl-particle" style="left:74%;bottom:2%;--dur:8.6s;--delay:1.8s;--travel:-199px;--op:0.28;width:2px;height:2px"></div>
+    <div class="spl-particle" style="left:69%;bottom:14%;--dur:9.6s;--delay:4.9s;--travel:-125px;--op:0.18;width:3px;height:3px"></div>
+    <div class="spl-particle" style="left:23%;bottom:30%;--dur:9.6s;--delay:4.9s;--travel:-200px;--op:0.28;width:1px;height:1px"></div>
+    <div class="spl-particle" style="left:7%;bottom:9%;--dur:6.1s;--delay:2.4s;--travel:-184px;--op:0.25;width:2px;height:2px"></div>
+    <div class="spl-particle" style="left:83%;bottom:7%;--dur:6.9s;--delay:3.1s;--travel:-128px;--op:0.23;width:2px;height:2px"></div>
+    <div class="spl-particle" style="left:54%;bottom:14%;--dur:11.4s;--delay:4.9s;--travel:-161px;--op:0.2;width:2px;height:2px"></div>
+    <div class="spl-particle" style="left:72%;bottom:27%;--dur:11.0s;--delay:0.6s;--travel:-200px;--op:0.32;width:1px;height:1px"></div>
+    <div class="spl-particle" style="left:19%;bottom:40%;--dur:10.7s;--delay:0.8s;--travel:-200px;--op:0.25;width:1px;height:1px"></div>
+    <div class="spl-particle" style="left:18%;bottom:11%;--dur:7.8s;--delay:5.0s;--travel:-132px;--op:0.19;width:1px;height:1px"></div>
+    <div class="spl-particle" style="left:74%;bottom:22%;--dur:10.6s;--delay:4.0s;--travel:-188px;--op:0.21;width:2px;height:2px"></div>
+    <div class="spl-particle" style="left:26%;bottom:6%;--dur:9.0s;--delay:0.1s;--travel:-186px;--op:0.16;width:1px;height:1px"></div>
+    <div class="spl-particle" style="left:51%;bottom:27%;--dur:8.0s;--delay:4.1s;--travel:-129px;--op:0.25;width:2px;height:2px"></div>
+    <div class="spl-particle" style="left:71%;bottom:7%;--dur:7.1s;--delay:0.2s;--travel:-127px;--op:0.33;width:2px;height:2px"></div>
+    <div class="spl-particle" style="left:59%;bottom:16%;--dur:7.9s;--delay:3.3s;--travel:-163px;--op:0.33;width:1px;height:1px"></div>
+    <div class="spl-particle" style="left:91%;bottom:22%;--dur:7.3s;--delay:4.0s;--travel:-166px;--op:0.33;width:2px;height:2px"></div>
+    <div class="spl-particle" style="left:40%;bottom:30%;--dur:10.5s;--delay:0.4s;--travel:-136px;--op:0.26;width:2px;height:2px"></div>
+    <div class="spl-particle" style="left:11%;bottom:34%;--dur:7.8s;--delay:3.4s;--travel:-121px;--op:0.35;width:2px;height:2px"></div>
+    <div class="spl-particle" style="left:19%;bottom:18%;--dur:8.6s;--delay:1.5s;--travel:-164px;--op:0.36;width:1px;height:1px"></div>
+    <div class="spl-particle" style="left:39%;bottom:26%;--dur:10.1s;--delay:3.0s;--travel:-159px;--op:0.32;width:2px;height:2px"></div>
+    <div class="spl-particle" style="left:27%;bottom:26%;--dur:8.0s;--delay:1.0s;--travel:-80px;--op:0.32;width:3px;height:3px"></div>
+  </div>
+  <div class="spl-img-wrap">
+    <img src="./assets/splash-art.jpg" alt="" draggable="false" fetchpriority="high">
+  </div>
+  <div class="spl-halo"></div>
+  <div class="spl-sea-glow"></div>
+  <div class="spl-titles">
+    <div class="spl-title-main">LIMU · VENUS OS</div>
+    <div class="spl-title-sub">ODYSSEY TEACHER SYSTEM</div>
+  </div>
+  <div class="spl-status" aria-live="polite">VENUS 系統喚醒中…</div>
+  <div class="spl-skip">輕觸進入</div>
+  <div class="spl-build"></div>
+</div>
+
+<script>
+/* ══ 開場控制器（v20.52）══════════════════════════════════════════════════
+   與獎卡系統同構：markup 是靜態的，這支腳本只負責更新狀態文字與退場。
+   'hw5ren:splashSeen' 在儲存分區裡屬於全域鍵（不隨帳號分區），
+   因此這裡直接用 localStorage，行為與原本的 safeGet/safeSet 一致。 */
+(function(){
+  var VERSION = '20.52.0';
+  var el = document.getElementById('spl-static');
+  if (!el) return;
+
+  var buildEl  = el.querySelector('.spl-build');
+  var statusEl = el.querySelector('.spl-status');
+  var wrapEl   = el.querySelector('.spl-img-wrap');
+  var titleEl  = el.querySelector('.spl-titles');
+  var rootEl   = document.documentElement;
+
+  if (buildEl) buildEl.textContent = 'v' + VERSION;
+  try { rootEl.classList.add('limu-splash-bg'); } catch(e) {}
+
+  var isFirst = true;
+  try { isFirst = !localStorage.getItem('hw5ren:splashSeen'); } catch(e) {}
+  try { localStorage.setItem('hw5ren:splashSeen', '1'); } catch(e) {}
+
+  var reduceMotion = false;
+  try {
+    reduceMotion = window.matchMedia &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  } catch(e) {}
+
+  if (!isFirst) {
+    if (wrapEl)  wrapEl.classList.add('spl-quick');
+    if (titleEl) titleEl.classList.add('spl-quick');
+  }
+
+  var dur = reduceMotion ? 420 : (isFirst ? 2800 : 1350);
+  var EXIT_FADE_MS = reduceMotion ? 20 : 340;
+  var IMG_EXIT_MS  = reduceMotion ? 20 : 180;
+
+  if (statusEl) statusEl.textContent = isFirst ? 'VENUS 系統喚醒中…' : '重新連結航程…';
+  var steps = isFirst
+    ? [[320, '定位本機資料…'], [1180, '校準教師工作介面…'], [2200, '遠征準備完成 ✓']]
+    : [[320, '資料同步中…'],   [880,  '航程就緒 ✓']];
+  var timers = steps.map(function(s){
+    return setTimeout(function(){ if (statusEl) statusEl.textContent = s[1]; }, s[0]);
+  });
+
+  /* 退場條件：最短播放時間到、且 App 已經完成登入判斷。
+     兩者都滿足才收，避免收掉之後又閃一下登入頁。 */
+  var minElapsed = false, appReady = false, done = false;
+
+  function teardown() {
+    timers.forEach(clearTimeout);
+    try { rootEl.classList.remove('limu-splash-bg'); } catch(e) {}
+    if (el && el.parentNode) el.parentNode.removeChild(el);
+  }
+
+  function finish() {
+    if (done) return;
+    done = true;
+    if (wrapEl) wrapEl.classList.add('spl-img-exit');
+    setTimeout(function(){
+      el.classList.add('spl-exit');
+      setTimeout(teardown, EXIT_FADE_MS);
+    }, IMG_EXIT_MS);
+  }
+
+  function maybeFinish() { if (minElapsed && appReady) finish(); }
+
+  setTimeout(function(){ minElapsed = true; maybeFinish(); }, dur);
+  /* 保底：App 若因異常never 回報就緒，仍會退場，不把使用者鎖在開場。 */
+  setTimeout(finish, dur + IMG_EXIT_MS + EXIT_FADE_MS + 2600);
+
+  el.addEventListener('click', finish);
+  el.addEventListener('keydown', function(e){
+    if (e.key === 'Enter' || e.key === ' ') finish();
+  });
+
+  window.LIMUSplash = {
+    appReady: function(){ appReady = true; maybeFinish(); },
+    finish: finish,
+    isDone: function(){ return done; }
+  };
+})();
+</script>
+
 <div id="safari-debug" style="position:fixed;top:0;left:0;right:0;z-index:9999999;background:#c00;color:#fff;padding:8px 12px;font-size:14px;font-family:monospace;letter-spacing:1px;display:none">HTML LOADED</div>
 <div id="error-overlay" style="display:none;position:fixed;inset:0;z-index:99999999;padding:20px;font-size:14px;white-space:pre-wrap;overflow:auto;margin:0;font-family:monospace"></div>
 <div id="root"><div style="display:flex;align-items:center;justify-content:center;height:100vh;font-size:18px;color:#1e3a5f;font-family:sans-serif;background:#f0f4ff">正在載入...</div></div>
@@ -4853,10 +4998,10 @@ const PRESET_HW = ["國習", "數習", "國乙", "國甲", "聽寫", "小日記"
 const NO_EXEMPT_HW = new Set(["聯絡簿", "國卷", "數卷"]); // 這些作業不顯示抵免
 const DUAL_HW = new Set(["國卷", "數卷", "聽寫"]); // 雙排作業（訂正+簽名）
 const WEEKDAYS = ["日", "一", "二", "三", "四", "五", "六"];
-const APP_VERSION = "20.50.0";
+const APP_VERSION = "20.52.0";
 const APP_BUILD_DATE = "2026-08-01";
-const APP_BUILD_ID = "limu-teacher-v20-50-20260801";
-const APP_CACHE_NAME = "hw-tracker-v20-50";
+const APP_BUILD_ID = "limu-teacher-v20-52-20260801";
+const APP_CACHE_NAME = "hw-tracker-v20-52";
 window.__LIMU_BUILD__ = Object.freeze({
     appVersion: APP_VERSION,
     buildDate: APP_BUILD_DATE,
@@ -6453,239 +6598,7 @@ function daySummary(rows, groups) {
 // ─────────────────────────────────────────────────────────────────────────────
 // ── Counsel View Component ────────────────────────────────────────────────────
 
-    // ══ SPLASH SCREEN COMPONENT ══════════════════════════════════════════════
-    var _SPL_IMG = "./assets/splash-art.jpg";
-    function SplashScreen({ onDone }) {
-      // 固定本次啟動的長／短版，避免狀態文字更新時重新讀取 splashSeen，
-      // 讓第一次的完整動畫途中被誤切成快速版。
-      var isFirstRef = React.useRef(null);
-      if (isFirstRef.current === null) isFirstRef.current = !safeGet('hw5ren:splashSeen');
-      var isFirst = isFirstRef.current;
-      var reduceMotion = false;
-      try { reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch(e) {}
-      var dur = reduceMotion ? 420 : (isFirst ? 2800 : 1350);
-      var initMsg = isFirst ? 'VENUS 系統喚醒中…' : '重新連結航程…';
-      var [status, setStatus] = React.useState(initMsg);
-      var [exiting, setExiting] = React.useState(false);
-      var [imgExiting, setImgExiting] = React.useState(false);
-      var finishRef = React.useRef(function(){});
-
-      // ── v20.44：實機視窗量測 ────────────────────────────────────────────
-      // 開場圖底部一直少一塊，前兩版分別試過「改用 dvh」與「portal 掛到 body」
-      // 都沒有改變切線位置（實機兩次都量到 872.7pt）。這代表問題不在 CSS 的
-      // 包含區塊，而是這台裝置回報給網頁的視窗高度本身就比螢幕短。
-      // 與其繼續猜，直接在開場畫面把真實數字印出來：
-      //   scr  螢幕高（screen.height）
-      //   inn  window.innerHeight
-      //   cli  documentElement.clientHeight
-      //   vis  visualViewport.height
-      //   dvh  實測 100dvh 等於多少
-      //   svh/lvh 小／大視窗單位
-      //   sat/sab 安全區上／下
-      //   ovl 開場層實際算出來的高度
-      // 一張截圖就能判斷是哪一個環節在少。確認原因後這段會移除。
-      var [diag, setDiag] = React.useState('');
-      var overlayRef = React.useRef(null);
-      // v20.47：視窗尺寸變動計數器，同時當作圖層的 key。
-      //
-      // v20.46 的量測顯示：ovl932、wrp932、img1011（= 932 × 動畫的 1.085），
-      // 排版上每一層都已經是滿版的 932，但畫面上圖仍然切在 873。
-      // 也就是「排版對了、繪製沒跟上」——圖層是在啟動早期視窗還是 873 時
-      // 建立的，裁切範圍就定在 873；之後視窗長到 932，但這一層掛著
-      // will-change:transform 的動畫在合成器上跑，不會重新光柵化，
-      // 舊的裁切範圍就一直留著。
-      //
-      // 對照組：App 主畫面（含 position:fixed 的底部工具列）一路畫到 932 沒有斷，
-      // 所以不是 fixed 被裁，也不是視窗真的只有 873。
-      //
-      // 解法是在視窗尺寸改變時換掉 key，讓 React 重建這個節點，
-      // 強迫產生一個裁切範圍正確的新圖層。
-      var [vpTick, setVpTick] = React.useState(0);
-      React.useEffect(function() {
-        var last = 0;
-        var bump = function() {
-          var h = Math.round(window.innerHeight);
-          if (h === last) return;
-          last = h;
-            setVpTick(function(n) { window.__LIMU_VPTICK = n + 1; return n + 1; });
-        };
-        last = Math.round(window.innerHeight);
-        window.addEventListener('resize', bump);
-        window.addEventListener('orientationchange', bump);
-        var vv = null;
-        try { vv = window.visualViewport; } catch(e) {}
-        if (vv && vv.addEventListener) vv.addEventListener('resize', bump);
-        // 保險：resize 事件可能在 React 掛載之前就發生完了，
-        // 開場的前 1.5 秒內定期比對一次實際高度。
-        var poll = setInterval(bump, 250);
-        var stop = setTimeout(function(){ clearInterval(poll); }, 1500);
-        return function() {
-          window.removeEventListener('resize', bump);
-          window.removeEventListener('orientationchange', bump);
-          if (vv && vv.removeEventListener) vv.removeEventListener('resize', bump);
-          clearInterval(poll); clearTimeout(stop);
-        };
-      }, []);
-      React.useEffect(function() {
-        var probe = null;
-        try {
-          probe = document.createElement('div');
-          probe.style.cssText = 'position:fixed;left:-9999px;top:0;width:1px;visibility:hidden;pointer-events:none;';
-          document.body.appendChild(probe);
-          var measure = function(unit) {
-            probe.style.height = unit;
-            var v = probe.getBoundingClientRect().height;
-            return v ? Math.round(v) : 0;
-          };
-          var dvh = measure('100dvh'), svh = measure('100svh'), lvh = measure('100lvh');
-          probe.style.height = '0';
-          probe.style.paddingTop = 'env(safe-area-inset-top,0px)';
-          probe.style.paddingBottom = 'env(safe-area-inset-bottom,0px)';
-          var box = probe.getBoundingClientRect();
-          var sat = Math.round(parseFloat(getComputedStyle(probe).paddingTop) || 0);
-          var sab = Math.round(parseFloat(getComputedStyle(probe).paddingBottom) || 0);
-          var vis = 0;
-          try { vis = Math.round((window.visualViewport && window.visualViewport.height) || 0); } catch(e) {}
-          var ovl = 0, wrp = 0, imgh = 0;
-          try { ovl = Math.round(overlayRef.current ? overlayRef.current.getBoundingClientRect().height : 0); } catch(e) {}
-          try {
-            var wEl = document.querySelector('.spl-img-wrap');
-            var iEl = document.querySelector('.spl-img-wrap img');
-            wrp = Math.round(wEl ? wEl.getBoundingClientRect().height : 0);
-            imgh = Math.round(iEl ? iEl.getBoundingClientRect().height : 0);
-          } catch(e) {}
-          var standalone = (window.navigator.standalone === true) ? 'SA' :
-            ((window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) ? 'DM' : 'BR');
-          setDiag(
-            'scr' + Math.round(window.screen.height) +
-            ' inn' + Math.round(window.innerHeight) +
-            ' cli' + Math.round(document.documentElement.clientHeight) +
-            ' vis' + vis + '\n' +
-            'dvh' + dvh + ' svh' + svh + ' lvh' + lvh +
-            ' ovl' + ovl + '\n' +
-            'wrp' + wrp + ' img' + imgh + ' ' +
-            'sat' + sat + ' sab' + sab + ' dpr' + (window.devicePixelRatio || 0) + ' ' + standalone
-          );
-        } catch(e) {
-          setDiag('measure failed: ' + String(e && e.message || e));
-        }
-        if (probe && probe.parentNode) probe.parentNode.removeChild(probe);
-        // v20.46：1.2 秒後再量一次。若兩次數字不同，就證實啟動瞬間的視窗
-        // 尺寸尚未定案（本機已觀察到 dvh 在兩次啟動間 932／873 跳動）。
-        var t = setTimeout(function() {
-          try {
-            var el = document.querySelector('.spl-img-wrap');
-            setDiag(function(prev) {
-              return prev + '\nlate inn' + Math.round(window.innerHeight) +
-                ' cli' + Math.round(document.documentElement.clientHeight) +
-                ' wrp' + Math.round(el ? el.getBoundingClientRect().height : 0) +
-                ' tick' + (window.__LIMU_VPTICK || 0);
-            });
-          } catch(e) {}
-        }, 1200);
-        return function(){ clearTimeout(t); };
-      }, []);
-
-      React.useEffect(function() {
-        var rootEl = document.documentElement;
-        try { rootEl.classList.add('limu-splash-bg'); } catch(e) {}
-        return function() { try { rootEl.classList.remove('limu-splash-bg'); } catch(e) {} };
-      }, []);
-
-      React.useEffect(function() {
-        safeSet('hw5ren:splashSeen', '1');
-
-        var steps = isFirst
-          ? [
-              [320,  '定位本機資料…'],
-              [1180, '校準教師工作介面…'],
-              [2200, '遠征準備完成 ✓'],
-            ]
-          : [
-              [320, '資料同步中…'],
-              [880, '航程就緒 ✓'],
-            ];
-
-        var timers = steps.map(function(s) {
-          return setTimeout(function() { setStatus(s[1]); }, s[0]);
-        });
-
-        // 動畫結束：圖片放大淡出 → 主畫面淡入
-        // v20.16：舊版在 setExiting 後只等 120ms 就 onDone()，但 .spl-exit 的
-        // spl-fadeout 是 340ms，等於淡出播到約 1/3 就被 unmount，畫面是硬切。
-        // 減少動態效果時 CSS 已把動畫壓到 0.01ms，這裡也同步縮短，不用空等。
-        var EXIT_FADE_MS = reduceMotion ? 20 : 340;
-        var IMG_EXIT_MS  = reduceMotion ? 20 : 180;
-        var done = false;
-        function finish() {
-          if (done) return;
-          done = true;
-          setImgExiting(true);
-          setTimeout(function() {
-            setExiting(true);
-            setTimeout(function() { try { onDone(); } catch(e) {} }, EXIT_FADE_MS);
-          }, IMG_EXIT_MS);
-        }
-        finishRef.current = finish;
-
-        var exitTimer = setTimeout(finish, dur);
-        // 保底 fallback：避免 PWA / Safari 動畫卡住。
-        // v20.16：改成依實際時長推算，不再固定 3.6 秒——減少動態效果時
-        // 開場只有 0.42 秒，舊值會讓使用者在異常時多等 3 秒以上。
-        var fallbackTimer = setTimeout(function() {
-          try { onDone(); } catch(e) {}
-        }, dur + IMG_EXIT_MS + EXIT_FADE_MS + 900);
-
-        return function() {
-          finishRef.current = function(){};
-          timers.forEach(clearTimeout);
-          clearTimeout(exitTimer);
-          clearTimeout(fallbackTimer);
-        };
-      }, []);
-
-      // v20.43：改用 portal 直接掛到 document.body。
-      // 開場層原本是 App 的 early return，會落在 #root 底下。只要任何一個祖先
-      // 具備 transform／filter／contain 之類的屬性，position:fixed 的包含區塊
-      // 就會變成那個祖先，若它同時有 overflow:hidden，連 height:100dvh 都會被
-      // 裁掉——這正符合實機量到的「圖只有 932-59=873pt」。portal 讓開場層成為
-      // body 的直接子節點，任何祖先都影響不到它。
-      return ReactDOM.createPortal(React.createElement('div', {
-        ref: overlayRef,
-        className: 'spl-overlay' + (exiting ? ' spl-exit' : ''),
-        role: 'button',
-        tabIndex: 0,
-        'aria-label': 'VENUS OS 開場動畫，輕觸進入',
-        onClick: function() { finishRef.current(); },
-        onKeyDown: function(e) { if (e.key === 'Enter' || e.key === ' ') finishRef.current(); }
-      },
-        React.createElement('div', { className: 'spl-dust' },
-          React.createElement("div",{className:"spl-particle",style:{left:"54%",bottom:"26%","--dur":"7.2s","--delay":"0.9s","--travel":"-111px","--op":0.18,width:"1px",height:"1px"}}),React.createElement("div",{className:"spl-particle",style:{left:"35%",bottom:"26%","--dur":"9.2s","--delay":"3.5s","--travel":"-91px","--op":0.38,width:"2px",height:"2px"}}),React.createElement("div",{className:"spl-particle",style:{left:"28%",bottom:"28%","--dur":"10.3s","--delay":"2.9s","--travel":"-181px","--op":0.38,width:"2px",height:"2px"}}),React.createElement("div",{className:"spl-particle",style:{left:"52%",bottom:"15%","--dur":"6.9s","--delay":"3.3s","--travel":"-188px","--op":0.29,width:"1px",height:"1px"}}),React.createElement("div",{className:"spl-particle",style:{left:"94%",bottom:"35%","--dur":"10.1s","--delay":"0.4s","--travel":"-120px","--op":0.25,width:"2px",height:"2px"}}),React.createElement("div",{className:"spl-particle",style:{left:"74%",bottom:"2%","--dur":"8.6s","--delay":"1.8s","--travel":"-199px","--op":0.28,width:"2px",height:"2px"}}),React.createElement("div",{className:"spl-particle",style:{left:"69%",bottom:"14%","--dur":"9.6s","--delay":"4.9s","--travel":"-125px","--op":0.18,width:"3px",height:"3px"}}),React.createElement("div",{className:"spl-particle",style:{left:"23%",bottom:"30%","--dur":"9.6s","--delay":"4.9s","--travel":"-200px","--op":0.28,width:"1px",height:"1px"}}),React.createElement("div",{className:"spl-particle",style:{left:"7%",bottom:"9%","--dur":"6.1s","--delay":"2.4s","--travel":"-184px","--op":0.25,width:"2px",height:"2px"}}),React.createElement("div",{className:"spl-particle",style:{left:"83%",bottom:"7%","--dur":"6.9s","--delay":"3.1s","--travel":"-128px","--op":0.23,width:"2px",height:"2px"}}),React.createElement("div",{className:"spl-particle",style:{left:"54%",bottom:"14%","--dur":"11.4s","--delay":"4.9s","--travel":"-161px","--op":0.2,width:"2px",height:"2px"}}),React.createElement("div",{className:"spl-particle",style:{left:"72%",bottom:"27%","--dur":"11.0s","--delay":"0.6s","--travel":"-200px","--op":0.32,width:"1px",height:"1px"}}),React.createElement("div",{className:"spl-particle",style:{left:"19%",bottom:"40%","--dur":"10.7s","--delay":"0.8s","--travel":"-200px","--op":0.25,width:"1px",height:"1px"}}),React.createElement("div",{className:"spl-particle",style:{left:"18%",bottom:"11%","--dur":"7.8s","--delay":"5.0s","--travel":"-132px","--op":0.19,width:"1px",height:"1px"}}),React.createElement("div",{className:"spl-particle",style:{left:"74%",bottom:"22%","--dur":"10.6s","--delay":"4.0s","--travel":"-188px","--op":0.21,width:"2px",height:"2px"}}),React.createElement("div",{className:"spl-particle",style:{left:"26%",bottom:"6%","--dur":"9.0s","--delay":"0.1s","--travel":"-186px","--op":0.16,width:"1px",height:"1px"}}),React.createElement("div",{className:"spl-particle",style:{left:"51%",bottom:"27%","--dur":"8.0s","--delay":"4.1s","--travel":"-129px","--op":0.25,width:"2px",height:"2px"}}),React.createElement("div",{className:"spl-particle",style:{left:"71%",bottom:"7%","--dur":"7.1s","--delay":"0.2s","--travel":"-127px","--op":0.33,width:"2px",height:"2px"}}),React.createElement("div",{className:"spl-particle",style:{left:"59%",bottom:"16%","--dur":"7.9s","--delay":"3.3s","--travel":"-163px","--op":0.33,width:"1px",height:"1px"}}),React.createElement("div",{className:"spl-particle",style:{left:"91%",bottom:"22%","--dur":"7.3s","--delay":"4.0s","--travel":"-166px","--op":0.33,width:"2px",height:"2px"}}),React.createElement("div",{className:"spl-particle",style:{left:"40%",bottom:"30%","--dur":"10.5s","--delay":"0.4s","--travel":"-136px","--op":0.26,width:"2px",height:"2px"}}),React.createElement("div",{className:"spl-particle",style:{left:"11%",bottom:"34%","--dur":"7.8s","--delay":"3.4s","--travel":"-121px","--op":0.35,width:"2px",height:"2px"}}),React.createElement("div",{className:"spl-particle",style:{left:"19%",bottom:"18%","--dur":"8.6s","--delay":"1.5s","--travel":"-164px","--op":0.36,width:"1px",height:"1px"}}),React.createElement("div",{className:"spl-particle",style:{left:"39%",bottom:"26%","--dur":"10.1s","--delay":"3.0s","--travel":"-159px","--op":0.32,width:"2px",height:"2px"}}),React.createElement("div",{className:"spl-particle",style:{left:"27%",bottom:"26%","--dur":"8.0s","--delay":"1.0s","--travel":"-80px","--op":0.32,width:"3px",height:"3px"}})
-        ),
-        // 動畫1：女神圖片淡入。
-        // 註：CSS 實際使用 object-fit:cover（見 .spl-img-wrap img）。素材 709×1536
-        // 與 iPhone 全螢幕比例幾乎相同，手機上不會裁切；但 iPad 等較寬的螢幕會被
-        // @media (min-aspect-ratio:3/4) 的 object-position:center 35% 切掉下緣。
-        // 若要真正「保留完整構圖」需改 contain 並補底色，屬視覺決策，此版不動。
-        React.createElement('div', {
-          key: 'wrap-' + vpTick, className: 'spl-img-wrap' + (isFirst ? '' : ' spl-quick') + (imgExiting ? ' spl-img-exit' : '')
-        },
-          React.createElement('img', { src: _SPL_IMG, alt: '', draggable: false })
-        ),
-        React.createElement('div', { className: 'spl-halo' }),
-        React.createElement('div', { className: 'spl-sea-glow' }),
-        React.createElement('div', {
-          className: 'spl-titles' + (isFirst ? '' : ' spl-quick')
-        },
-          React.createElement('div', { className: 'spl-title-main' }, 'LIMU · VENUS OS'),
-          React.createElement('div', { className: 'spl-title-sub' }, 'ODYSSEY TEACHER SYSTEM')
-        ),
-        React.createElement('div', { className: 'spl-status', 'aria-live': 'polite' }, status),
-        React.createElement('div', { className: 'spl-skip' }, '輕觸進入'),
-        React.createElement('div', { className: 'spl-build' }, 'v' + APP_VERSION + (diag ? '\n' + diag : ''))
-      ), document.body);
-    }
-    // ══ END SPLASH SCREEN ════════════════════════════════════════════════════
+    // ══ 開場畫面已於 v20.52 改為 body 內的靜態元素，見檔頭 #spl-static ══
 
 // ── Settings View Component ───────────────────────────────────────────────────
 
@@ -8522,7 +8435,7 @@ function App() {
         } catch(e) {}
         try { window._writeLog('step', 'App mounted OK'); } catch(e) {}
     }, []);
-    const [splashDone, setSplashDone] = React.useState(false);
+
     const [view, setViewRaw] = useState("month");
     function setView(v) {
         try { window._writeLog('step', 'view→' + v); } catch(e) {}
@@ -9848,6 +9761,13 @@ function App() {
     const [firebaseUid, setFirebaseUid] = useState(null);
     const [userEmail, setUserEmail] = useState('');
     const [authLoading, setAuthLoading] = useState(true); // 等待 Firebase 確認
+    // v20.52：開場改為靜態元素後，App 只需在登入判斷完成時通知它可以退場。
+    // 兩個條件（最短播放時間、App 就緒）都滿足才收，避免收掉後又閃一下登入頁。
+    // 宣告位置必須在 authLoading 之後，否則相依陣列會踩到暫時性死區。
+    React.useEffect(function() {
+        if (authLoading) return;
+        try { if (window.LIMUSplash) window.LIMUSplash.appReady(); } catch(e) {}
+    }, [authLoading]);
     const [forceLocalMode, setForceLocalMode] = useState(function(){
         try { return !!(window.LIMUStorageScope && window.LIMUStorageScope.rawGet('hw5ren:localModeV1')); }
         catch(e) { return false; }
@@ -12640,8 +12560,11 @@ function App() {
     }
     // ──────────────────────────────────────────────────────────────
     // 等待 Firebase 確認登入狀態 或 Splash 尚未完成：顯示 Splash（early return，不渲染 App）
-    if (authLoading || !splashDone) {
-        return React.createElement(SplashScreen, { onDone: function() { setSplashDone(true); } });
+    // v20.52：開場已改為 body 裡的靜態元素，由 index.html 的開場控制器負責
+    // 播放與退場。App 這裡只要在登入判斷完成前不要渲染即可——靜態開場蓋在
+    // 上面，使用者不會看到中間狀態。
+    if (authLoading) {
+        return null;
     }
 
     var localOnlyMode = !authed && (forceLocalMode || isOffline || typeof firebase === 'undefined' || !firebase.auth);
@@ -15788,8 +15711,8 @@ function App() {
   var updateRegistration = null;
   var reloadingForUpdate = false;
   var updateActivationRequested = false;
-  var SW_BUILD_ID = 'limu-teacher-v20-50-20260801';
-  var SW_CACHE_NAME = 'hw-tracker-v20-50';
+  var SW_BUILD_ID = 'limu-teacher-v20-52-20260801';
+  var SW_CACHE_NAME = 'hw-tracker-v20-52';
   var SW_URL = './sw.js?build=' + encodeURIComponent(SW_BUILD_ID);
   var lastUpdateCheck = 0;
   // v20.16：checkBuildConsistency 本來就有 15 秒節流，但 reg.update() 沒有。
