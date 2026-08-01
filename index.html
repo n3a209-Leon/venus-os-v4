@@ -4825,10 +4825,10 @@ const PRESET_HW = ["國習", "數習", "國乙", "國甲", "聽寫", "小日記"
 const NO_EXEMPT_HW = new Set(["聯絡簿", "國卷", "數卷"]); // 這些作業不顯示抵免
 const DUAL_HW = new Set(["國卷", "數卷", "聽寫"]); // 雙排作業（訂正+簽名）
 const WEEKDAYS = ["日", "一", "二", "三", "四", "五", "六"];
-const APP_VERSION = "20.46.0";
+const APP_VERSION = "20.47.0";
 const APP_BUILD_DATE = "2026-08-01";
-const APP_BUILD_ID = "limu-teacher-v20-46-20260801";
-const APP_CACHE_NAME = "hw-tracker-v20-46";
+const APP_BUILD_ID = "limu-teacher-v20-47-20260801";
+const APP_CACHE_NAME = "hw-tracker-v20-47";
 window.__LIMU_BUILD__ = Object.freeze({
     appVersion: APP_VERSION,
     buildDate: APP_BUILD_DATE,
@@ -6458,6 +6458,46 @@ function daySummary(rows, groups) {
       // 一張截圖就能判斷是哪一個環節在少。確認原因後這段會移除。
       var [diag, setDiag] = React.useState('');
       var overlayRef = React.useRef(null);
+      // v20.47：視窗尺寸變動計數器，同時當作圖層的 key。
+      //
+      // v20.46 的量測顯示：ovl932、wrp932、img1011（= 932 × 動畫的 1.085），
+      // 排版上每一層都已經是滿版的 932，但畫面上圖仍然切在 873。
+      // 也就是「排版對了、繪製沒跟上」——圖層是在啟動早期視窗還是 873 時
+      // 建立的，裁切範圍就定在 873；之後視窗長到 932，但這一層掛著
+      // will-change:transform 的動畫在合成器上跑，不會重新光柵化，
+      // 舊的裁切範圍就一直留著。
+      //
+      // 對照組：App 主畫面（含 position:fixed 的底部工具列）一路畫到 932 沒有斷，
+      // 所以不是 fixed 被裁，也不是視窗真的只有 873。
+      //
+      // 解法是在視窗尺寸改變時換掉 key，讓 React 重建這個節點，
+      // 強迫產生一個裁切範圍正確的新圖層。
+      var [vpTick, setVpTick] = React.useState(0);
+      React.useEffect(function() {
+        var last = 0;
+        var bump = function() {
+          var h = Math.round(window.innerHeight);
+          if (h === last) return;
+          last = h;
+            setVpTick(function(n) { window.__LIMU_VPTICK = n + 1; return n + 1; });
+        };
+        last = Math.round(window.innerHeight);
+        window.addEventListener('resize', bump);
+        window.addEventListener('orientationchange', bump);
+        var vv = null;
+        try { vv = window.visualViewport; } catch(e) {}
+        if (vv && vv.addEventListener) vv.addEventListener('resize', bump);
+        // 保險：resize 事件可能在 React 掛載之前就發生完了，
+        // 開場的前 1.5 秒內定期比對一次實際高度。
+        var poll = setInterval(bump, 250);
+        var stop = setTimeout(function(){ clearInterval(poll); }, 1500);
+        return function() {
+          window.removeEventListener('resize', bump);
+          window.removeEventListener('orientationchange', bump);
+          if (vv && vv.removeEventListener) vv.removeEventListener('resize', bump);
+          clearInterval(poll); clearTimeout(stop);
+        };
+      }, []);
       React.useEffect(function() {
         var probe = null;
         try {
@@ -6510,7 +6550,8 @@ function daySummary(rows, groups) {
             setDiag(function(prev) {
               return prev + '\nlate inn' + Math.round(window.innerHeight) +
                 ' cli' + Math.round(document.documentElement.clientHeight) +
-                ' wrp' + Math.round(el ? el.getBoundingClientRect().height : 0);
+                ' wrp' + Math.round(el ? el.getBoundingClientRect().height : 0) +
+                ' tick' + (window.__LIMU_VPTICK || 0);
             });
           } catch(e) {}
         }, 1200);
@@ -6593,7 +6634,7 @@ function daySummary(rows, groups) {
         // @media (min-aspect-ratio:3/4) 的 object-position:center 35% 切掉下緣。
         // 若要真正「保留完整構圖」需改 contain 並補底色，屬視覺決策，此版不動。
         React.createElement('div', {
-          className: 'spl-img-wrap' + (isFirst ? '' : ' spl-quick') + (imgExiting ? ' spl-img-exit' : '')
+          key: 'wrap-' + vpTick, className: 'spl-img-wrap' + (isFirst ? '' : ' spl-quick') + (imgExiting ? ' spl-img-exit' : '')
         },
           React.createElement('img', { src: _SPL_IMG, alt: '', draggable: false })
         ),
@@ -15713,8 +15754,8 @@ function App() {
   var updateRegistration = null;
   var reloadingForUpdate = false;
   var updateActivationRequested = false;
-  var SW_BUILD_ID = 'limu-teacher-v20-46-20260801';
-  var SW_CACHE_NAME = 'hw-tracker-v20-46';
+  var SW_BUILD_ID = 'limu-teacher-v20-47-20260801';
+  var SW_CACHE_NAME = 'hw-tracker-v20-47';
   var SW_URL = './sw.js?build=' + encodeURIComponent(SW_BUILD_ID);
   var lastUpdateCheck = 0;
   // v20.16：checkBuildConsistency 本來就有 15 秒節流，但 reg.update() 沒有。
