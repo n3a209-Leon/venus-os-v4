@@ -1318,8 +1318,18 @@
         }
 
         .spl-overlay {
-          position:fixed; inset:0; z-index:999999;
-          background:#080b10;
+          /* v20.41：原本用 inset:0 撐滿，高度由「包含區塊」決定。實機在 iPhone
+             上量到開場圖只有 932-59=873pt，底部露出 59pt 的 html 底色
+             （#07040f）——59pt 正好是頂部安全區高度，代表某個祖先把包含區塊
+             縮短了一個瀏海。改用 dvh：dvh 相對「視窗」而非包含區塊，不管祖先
+             怎麼變都一定滿版。背景同時改成與 html/body 一致的 #07040f，
+             萬一還有殘縫也看不出來。 */
+          position:fixed;
+          top:0; left:0; right:0;
+          height:100vh;
+          height:100dvh;
+          z-index:999999;
+          background:#07040f;
           overflow:hidden;
           pointer-events:all;
           touch-action:manipulation;
@@ -3618,8 +3628,15 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Noto+Sans+TC:wght@400;500;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-<noscript><link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Noto+Sans+TC:wght@400;500;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet"></noscript>
+<!-- v20.41：中文字體（Noto Sans TC）與裝飾字體拆成兩個請求。
+     原本三套共用 display=swap：字體檔在首次載入時晚於首次繪製才到，一換上去
+     整頁文字的行高與字寬都變，畫面會整體跳一次——這就是進入「班級設定」時
+     「一開始會動」的來源。內文字體改成 optional：來不及就這一輪不換，永遠
+     不會跳；字體進了 HTTP 快取後（第二次開啟起）從第一次繪製就套用。
+     裝飾字體只用在開場標題，位移看不出來，維持 swap。 -->
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=optional" rel="stylesheet" media="print" onload="this.media='all'">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Share+Tech+Mono&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=optional" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Share+Tech+Mono&display=swap" rel="stylesheet"></noscript>
   <!-- Firebase SDK（Auth + Firestore）-->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js" crossorigin="anonymous"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js" crossorigin="anonymous"></script>
@@ -4769,10 +4786,10 @@ const PRESET_HW = ["國習", "數習", "國乙", "國甲", "聽寫", "小日記"
 const NO_EXEMPT_HW = new Set(["聯絡簿", "國卷", "數卷"]); // 這些作業不顯示抵免
 const DUAL_HW = new Set(["國卷", "數卷", "聽寫"]); // 雙排作業（訂正+簽名）
 const WEEKDAYS = ["日", "一", "二", "三", "四", "五", "六"];
-const APP_VERSION = "20.40.0";
+const APP_VERSION = "20.42.0";
 const APP_BUILD_DATE = "2026-08-01";
-const APP_BUILD_ID = "limu-teacher-v20-40-20260801";
-const APP_CACHE_NAME = "hw-tracker-v20-40";
+const APP_BUILD_ID = "limu-teacher-v20-42-20260801";
+const APP_CACHE_NAME = "hw-tracker-v20-42";
 window.__LIMU_BUILD__ = Object.freeze({
     appVersion: APP_VERSION,
     buildDate: APP_BUILD_DATE,
@@ -11466,6 +11483,23 @@ function App() {
             try { window.scrollTo(0, scrollY); } catch(e) {}
         };
     }, [shouldLockPage]);
+    // v20.42：切換主檢視時把捲動歸零。
+    //
+    // 上面的捲動鎖在「開啟功能選單」時就會把 body 固定住，並記下當下的捲動位置；
+    // 解鎖時再 window.scrollTo 回去。問題是使用者的動線是
+    // 「更多 → 班級設定」——setView('settings') 與 setShowGearMenu(false) 同一批
+    // 送出，解鎖的 cleanup 是在新檢視已經掛上之後才跑，於是把「上一頁捲到哪」
+    // 的偏移套用到了剛進來的班級設定頁。
+    //
+    // 結果是新頁一進來就停在中段，而且此時版面還在長（班級清單、幹部名單都是
+    // 非同步載入），瀏覽器的捲動錨定會持續修正位置，手指一滑就被拉回去，
+    // 摸起來就是「卡住、被拉住、黏住」，等版面長完就恢復正常——只有一開始。
+    //
+    // 這個 effect 宣告在捲動鎖之後：同一次 commit 中，所有 effect 的 cleanup
+    // 會先跑完，才輪到 effect 本體，所以這裡的歸零一定晚於上面的還原。
+    useEffect(function() {
+        try { window.scrollTo(0, 0); } catch(e) {}
+    }, [view]);
     function toggleLate(num) {
         setDayLate(prev => {
             const next = new Set(prev);
@@ -15557,8 +15591,8 @@ function App() {
   var updateRegistration = null;
   var reloadingForUpdate = false;
   var updateActivationRequested = false;
-  var SW_BUILD_ID = 'limu-teacher-v20-40-20260801';
-  var SW_CACHE_NAME = 'hw-tracker-v20-40';
+  var SW_BUILD_ID = 'limu-teacher-v20-42-20260801';
+  var SW_CACHE_NAME = 'hw-tracker-v20-42';
   var SW_URL = './sw.js?build=' + encodeURIComponent(SW_BUILD_ID);
   var lastUpdateCheck = 0;
   // v20.16：checkBuildConsistency 本來就有 15 秒節流，但 reg.update() 沒有。
