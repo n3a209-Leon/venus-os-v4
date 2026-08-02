@@ -2250,45 +2250,71 @@
           .account-row{padding-top:1px!important}
           .stor-bar{flex-wrap:nowrap!important;overflow:hidden}
           .stor-bar .stor-detail{display:none}
-          main,.settings-view,.archive-wrap{padding-bottom:calc(66px + var(--safe-bottom))!important}
+          /* v20.55：懸浮膠囊 58 + 下緣留白 12 + 內容間隙 12 */
+          main,.settings-view,.archive-wrap{padding-bottom:calc(82px + var(--safe-bottom))!important}
+          /* ══ v20.55：底部工作欄改為懸浮膠囊 ═══════════════════════════
+             原本是貼齊螢幕底緣的整條列。改成離開邊緣、四周留白的膠囊之後：
+             1. 視覺上與內容分層，捲動時不再像是被切掉的一塊；
+             2. iOS 有時只給網頁 873pt 畫布、下方 59pt 由系統填底色——
+                工作欄不再壓在那條邊界上，那 59pt 只會露出 App 自己的底色。
+
+             未選取的項目只顯示圖示；**選取中的項目才展開成帶文字的膠囊**。
+             這樣既有 Instagram 那種乾淨的圖示列，又不會讓人猜圖示的意思——
+             目前在哪一頁隨時看得到，其餘四個保持安靜。
+             不使用 backdrop-filter：固定元素套毛玻璃會讓捲動掉幀（v20.36）。 */
           .mobile-dock{
             position:fixed;
-            left:0;
-            right:0;
-            bottom:0;
+            left:max(14px,env(safe-area-inset-left,0px));
+            right:max(14px,env(safe-area-inset-right,0px));
+            bottom:calc(max(12px,var(--safe-bottom)));
             z-index:340;
-            display:grid;
-            grid-template-columns:repeat(5,minmax(0,1fr));
-            min-height:calc(60px + var(--safe-bottom));
-            padding:5px 10px max(5px,var(--safe-bottom));
+            display:flex;
+            align-items:center;
+            gap:4px;
+            min-height:58px;
+            padding:6px;
             border:1px solid rgba(255,255,255,.56);
-            border-radius:20px 20px 0 0;
-            background:rgba(255,255,255,.92);
-            box-shadow:0 -6px 24px rgba(20,42,74,.2);
+            border-radius:999px;
+            background:rgba(255,255,255,.96);
+            box-shadow:0 12px 32px rgba(20,42,74,.26),0 2px 8px rgba(20,42,74,.14);
           }
           .mobile-dock-btn{
+            flex:1 1 0;
             min-width:0;
-            min-height:50px;
+            min-height:46px;
             display:flex;
-            flex-direction:column;
+            flex-direction:row;
             align-items:center;
             justify-content:center;
-            gap:2px;
+            gap:6px;
             border:0;
-            border-radius:15px;
+            border-radius:999px;
             background:transparent;
+            transition:flex-grow .22s ease,background .18s ease,color .18s ease;
             color:#64748b;
             font:700 10px/1.2 'Noto Sans TC',sans-serif;
           }
-          .mobile-dock-btn .dock-icon{font-size:19px;line-height:1}
-          .mobile-dock-btn.active{background:#e7f0fb;color:#1e3a5f}
+          .mobile-dock-btn .dock-icon{font-size:20px;line-height:1}
+          /* 只有選取中的項目展開並顯示文字 */
+          .mobile-dock-btn .dock-label{
+            display:none;
+            font-size:13px;
+            font-weight:800;
+            letter-spacing:.5px;
+            white-space:nowrap;
+          }
+          .mobile-dock-btn.active{flex-grow:2.1;background:#e7f0fb;color:#1e3a5f}
+          .mobile-dock-btn.active .dock-label{display:inline}
+          @media(prefers-reduced-motion:reduce){
+            .mobile-dock-btn{transition:none}
+          }
           [data-theme="nerv"] .mobile-dock{
             border-color:rgba(255,102,0,.5);
-            border-radius:4px 4px 0 0;
+            border-radius:999px;
             background:rgba(10,3,0,.94);
             box-shadow:0 0 24px rgba(255,102,0,.2);
           }
-          [data-theme="nerv"] .mobile-dock-btn{border-radius:2px;color:rgba(255,136,68,.7);font-family:'Share Tech Mono',monospace}
+          [data-theme="nerv"] .mobile-dock-btn{border-radius:999px;color:rgba(255,136,68,.7);font-family:'Share Tech Mono',monospace}
           [data-theme="nerv"] .mobile-dock-btn.active{background:rgba(255,102,0,.16);color:#ff8844}
           [data-theme="nebula"] .mobile-dock{
             border-color:rgba(145,110,255,.34);
@@ -2298,12 +2324,33 @@
           [data-theme="nebula"] .mobile-dock-btn{color:rgba(215,204,255,.68)}
           [data-theme="nebula"] .mobile-dock-btn.active{background:rgba(128,93,224,.22);color:#e6ddff}
           .v18-sheet-overlay{align-items:flex-end!important;padding:0!important}
-          .v18-sheet-panel{
+          /* ══ v20.55：彈出面板配合懸浮膠囊一起更新 ═══════════════════
+             1. 圓角加大到 28px，與膠囊的 999px 同一種語彙；
+             2. 頂端加一條可視的把手，明確指出「這是可以往下收的面板」——
+                之前只有右上角的 × 才看得出來；
+             3. 底部留白改成「安全區 + 膠囊高度」，讓面板內容不會被
+                懸浮的工作欄壓住。 */
+          .v18-sheet-panel,.gr-center-box,.gr-formal-box,.wp-box{
             width:100%!important;
             max-width:none!important;
             max-height:92dvh!important;
-            border-radius:22px 22px 0 0!important;
-            padding-bottom:max(18px,var(--safe-bottom))!important;
+            border-radius:28px 28px 0 0!important;
+            padding-top:26px!important;
+            padding-bottom:calc(max(18px,var(--safe-bottom)) + 58px)!important;
+            box-shadow:0 -16px 44px rgba(0,0,0,.34)!important;
+            position:relative;
+          }
+          .v18-sheet-panel::after,.gr-center-box::after,
+          .gr-formal-box::after,.wp-box::after{
+            content:"";
+            position:absolute;
+            top:11px; left:50%;
+            width:38px; height:4px;
+            margin-left:-19px;
+            border-radius:999px;
+            background:currentColor;
+            opacity:.22;
+            pointer-events:none;
           }
           .settings-tabbar{margin-left:-2px;margin-right:-2px}
           /* 已選取分頁沒有再次點擊的動作，略過命中測試讓拖曳立即成為原生捲動。 */
@@ -2585,7 +2632,7 @@
           .day-secondary-tool{display:none!important}
           .day-action-bar{margin:5px 8px 0;padding:5px 7px}
           .day-action-bar .excel-btn{padding-left:10px;padding-right:10px}
-          .mobile-dock{box-shadow:0 -8px 28px rgba(20,42,74,.16)}
+          .mobile-dock{box-shadow:0 12px 32px rgba(20,42,74,.26),0 2px 8px rgba(20,42,74,.14)}
           .mobile-dock-btn.active{box-shadow:inset 0 0 0 1px rgba(43,109,168,.08)}
           .mobile-dock-btn.active .dock-icon{transform:translateY(-1px)}
           .class-locator-metrics{grid-template-columns:repeat(4,minmax(58px,1fr))}
@@ -3329,8 +3376,10 @@
             background:rgba(247,240,229,.95);
             box-shadow:0 -8px 26px rgba(72,55,35,.18),inset 0 1px 0 rgba(255,255,255,.68);
           }
+          /* v20.55：這道飾條原本是貼在整條列的上緣；改成膠囊後沒有那條邊了。 */
           .app[data-theme="mucha"] .mobile-dock::before,
           .app[data-theme="nebula"] .mobile-dock::before{
+            display:none;
             content:"";
             position:absolute;
             left:8px;
@@ -3350,7 +3399,7 @@
             color:#355a50;
             background:rgba(117,131,107,.13);
             border:1px solid rgba(178,138,69,.28);
-            border-radius:18px 18px 13px 13px;
+            border-radius:999px;
             box-shadow:inset 0 2px 0 rgba(226,201,135,.35);
           }
           .app[data-theme="nebula"] .mobile-dock::before{
@@ -3572,9 +3621,9 @@
         }
         .app[data-theme="odyssey"] .cal-cell:hover{background:#eee4d1}
         .app[data-theme="odyssey"] .mobile-dock{
-          background:linear-gradient(180deg,#102e38,#071c24);
-          border-top:1px solid rgba(213,184,121,.5);
-          box-shadow:0 -8px 28px rgba(5,23,29,.28);
+          background:linear-gradient(180deg,#123642,#08222c);
+          border:1px solid rgba(213,184,121,.5);
+          box-shadow:0 14px 34px rgba(5,23,29,.42),0 2px 8px rgba(5,23,29,.3);
         }
         .app[data-theme="odyssey"] .mobile-dock-btn{color:#d8ccb4}
         .app[data-theme="odyssey"] .mobile-dock-btn.active{color:#f2d69b}
@@ -4085,7 +4134,7 @@
    下次改版若漏改其中一個，開場會顯示舊版本——而那行字正是我們用來判斷
    Service Worker 有沒有換版的依據，錯了會直接誤導除錯方向。
    改由這裡單一定義，APP_VERSION 從這裡取。 */
-window.__LIMU_VERSION = '20.54.0';
+window.__LIMU_VERSION = '20.55.0';
 (function(){
   var VERSION = window.__LIMU_VERSION;
   var el = document.getElementById('spl-static');
@@ -5004,10 +5053,10 @@ const NO_EXEMPT_HW = new Set(["聯絡簿", "國卷", "數卷"]); // 這些作業
 const DUAL_HW = new Set(["國卷", "數卷", "聽寫"]); // 雙排作業（訂正+簽名）
 const WEEKDAYS = ["日", "一", "二", "三", "四", "五", "六"];
 // v20.53：版本號單一來源，見開場控制器的 window.__LIMU_VERSION。
-const APP_VERSION = (typeof window !== 'undefined' && window.__LIMU_VERSION) || "20.54.0";
+const APP_VERSION = (typeof window !== 'undefined' && window.__LIMU_VERSION) || "20.55.0";
 const APP_BUILD_DATE = "2026-08-01";
-const APP_BUILD_ID = "limu-teacher-v20-54-20260801";
-const APP_CACHE_NAME = "hw-tracker-v20-54";
+const APP_BUILD_ID = "limu-teacher-v20-55-20260801";
+const APP_CACHE_NAME = "hw-tracker-v20-55";
 window.__LIMU_BUILD__ = Object.freeze({
     appVersion: APP_VERSION,
     buildDate: APP_BUILD_DATE,
@@ -15626,24 +15675,24 @@ function App() {
             React.createElement("button", {
                 type:"button", className:"mobile-dock-btn" + ((view === "month" || view === "day") ? " active" : ""),
                 onClick:function(){ setView("month"); }, "aria-label":"開啟月曆紀錄"
-            }, React.createElement("span", { className:"dock-icon", "aria-hidden":"true" }, "📅"), React.createElement("span", null, "月曆")),
+            }, React.createElement("span", { className:"dock-icon", "aria-hidden":"true" }, "📅"), React.createElement("span", { className:"dock-label" }, "月曆")),
             React.createElement("button", {
                 type:"button", className:"mobile-dock-btn",
                 onClick:openTodayWorkspace, "aria-label":"開啟今日工作台"
-            }, React.createElement("span", { className:"dock-icon", "aria-hidden":"true" }, "🏠"), React.createElement("span", null, "今天")),
+            }, React.createElement("span", { className:"dock-icon", "aria-hidden":"true" }, "🏠"), React.createElement("span", { className:"dock-label" }, "今天")),
             React.createElement("button", {
                 type:"button", className:"mobile-dock-btn",
                 onClick:function(){ setShowGlobalSearch(true); }, "aria-label":"開啟全域搜尋"
-            }, React.createElement("span", { className:"dock-icon", "aria-hidden":"true" }, "🔎"), React.createElement("span", null, "搜尋")),
+            }, React.createElement("span", { className:"dock-icon", "aria-hidden":"true" }, "🔎"), React.createElement("span", { className:"dock-label" }, "搜尋")),
             React.createElement("button", {
                 type:"button", className:"mobile-dock-btn",
                 onClick:function(){ setGrCenter(true); setGrTab("recent"); setGrFilter("7"); setGrSearch(""); },
                 "aria-label":"開啟輔導紀錄中心"
-            }, React.createElement("span", { className:"dock-icon", "aria-hidden":"true" }, "📋"), React.createElement("span", null, "輔導")),
+            }, React.createElement("span", { className:"dock-icon", "aria-hidden":"true" }, "📋"), React.createElement("span", { className:"dock-label" }, "輔導")),
             React.createElement("button", {
                 type:"button", className:"mobile-dock-btn" + ((view === "settings" || view === "archive") ? " active" : ""),
                 onClick:function(){ setShowGearMenu(true); }, "aria-label":"開啟更多功能"
-            }, React.createElement("span", { className:"dock-icon", "aria-hidden":"true" }, "•••"), React.createElement("span", null, "更多"))
+            }, React.createElement("span", { className:"dock-icon", "aria-hidden":"true" }, "•••"), React.createElement("span", { className:"dock-label" }, "更多"))
         ),
         view === "settings" && (React.createElement(SettingsView, { groups: groups, saveGroups: saveGroups, groupVersions: groupVersions, saveGroupVersions: saveGroupVersions, saveSettingsAtomic: saveSettingsAtomic, className: className, setClassName: (v) => { setClassName(v); _sl.set("hw5ren:className", v); saveSettingsToFirebase(v, undefined, undefined, undefined); }, schoolName: schoolName, setSchoolName: (v) => { setSchoolName(v); _sl.set("hw5ren:school", v); saveSettingsToFirebase(undefined, v, undefined, undefined); }, schoolYear: schoolYear, setSchoolYear: (v) => { setSchoolYear(v); _sl.set("hw5ren:year", v); saveSettingsToFirebase(undefined, undefined, v, undefined); }, semStart1: semStart1, setSemStart1: (v) => { setSemStart1(v); _sl.set("hw5ren:semStart1", v); saveSettingsToFirebase(undefined, undefined, undefined, undefined, undefined, undefined, v, undefined); }, semStart2: semStart2, setSemStart2: (v) => { setSemStart2(v); _sl.set("hw5ren:semStart2", v); saveSettingsToFirebase(undefined, undefined, undefined, undefined, undefined, undefined, undefined, v); }, semEnd1: semEnd1, semEnd2: semEnd2, schoolCalendar: schoolCalendar, classSize: classSize, setClassSize: (v) => { setClassSize(v); _sl.set("hw5ren:classSize", String(v)); saveSettingsToFirebase(undefined, undefined, undefined, undefined, undefined, v, undefined, undefined); }, officers: officers, saveOfficers: saveOfficers, officerPresets: officerPresets, setOfficerPresets: (v) => { setOfficerPresets(v); _sl.set("hw5ren:officerPresets", JSON.stringify(v)); markSettingsDirty('settings:main', '\u500B\u4EBA\u6E05\u55AE'); }, onClose: () => setView("month"), isNerv: isNerv, idbKeys: idbKeys, idbGet: idbGet, idbDelete: idbDelete, openDB: openDB, DB_STORE: DB_STORE, classes: classes, addClass: addClass, firebaseUid: firebaseUid, checkCurrentArchive:checkCurrentArchive, startSchoolYearTransition:startSchoolYearTransition, onOpenArchive:function(){setView("archive");} })),
         view === "archive" && (React.createElement(ArchiveView, { idbKeys: idbKeys, idbGet: idbGet, idbSet: idbSet, groups: groups, schoolYear: schoolYear, className: className, schoolName: schoolName, classes: classes, yearRecords: yearRecords, isNerv: isNerv, firebaseUid: firebaseUid, onBackupDone: function(){ setBackupEpoch(Date.now()); }, onDeleteClass:permanentlyDeleteClass, deleteBusyClassId:deleteBusyClassId, onJumpDate:jumpToClassDate })))));
@@ -15763,8 +15812,8 @@ function App() {
   var updateRegistration = null;
   var reloadingForUpdate = false;
   var updateActivationRequested = false;
-  var SW_BUILD_ID = 'limu-teacher-v20-54-20260801';
-  var SW_CACHE_NAME = 'hw-tracker-v20-54';
+  var SW_BUILD_ID = 'limu-teacher-v20-55-20260801';
+  var SW_CACHE_NAME = 'hw-tracker-v20-55';
   var SW_URL = './sw.js?build=' + encodeURIComponent(SW_BUILD_ID);
   var lastUpdateCheck = 0;
   // v20.16：checkBuildConsistency 本來就有 15 秒節流，但 reg.update() 沒有。
