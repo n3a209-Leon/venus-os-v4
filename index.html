@@ -2239,6 +2239,28 @@
         [data-theme="nebula"] .settings-tabbar{background:rgba(7,4,15,.91)}
         .archive-wrap,.settings-view{content-visibility:auto;contain-intrinsic-size:900px}
         body.v18-modal-open{overscroll-behavior:none}
+        /* v20.56：面板開啟時收起懸浮工作欄。
+           面板本來就蓋住整個下半部，膠囊留著只是多一層視覺噪音，
+           也逼得面板必須多留一段底部空白避讓。 */
+        body.v18-modal-open .mobile-dock{display:none!important}
+        /* v20.56：回首頁鈕改放左下角——左手拇指的自然落點。
+           原本在標題列右側，與關閉鈕擠在一起，單手時要跨越整個螢幕。 */
+        .sheet-home-btn{
+          position:fixed!important;
+          left:max(18px,env(safe-area-inset-left,0px))!important;
+          bottom:max(18px,var(--safe-bottom))!important;
+          z-index:9500!important;
+          margin:0!important;
+          padding:11px 20px!important;
+          min-height:46px!important;
+          font-size:14px!important;
+          font-weight:800!important;
+          border-radius:999px!important;
+          border:1px solid currentColor!important;
+          background:rgba(125,125,150,.22)!important;
+          box-shadow:0 10px 26px rgba(0,0,0,.42)!important;
+          opacity:1!important;
+        }
         :focus-visible{outline:3px solid #42a5f5;outline-offset:2px}
         @media(max-width:640px){
           .nav-btn,.undo-btn{width:44px!important;height:44px!important;min-width:44px!important}
@@ -4134,7 +4156,7 @@
    下次改版若漏改其中一個，開場會顯示舊版本——而那行字正是我們用來判斷
    Service Worker 有沒有換版的依據，錯了會直接誤導除錯方向。
    改由這裡單一定義，APP_VERSION 從這裡取。 */
-window.__LIMU_VERSION = '20.55.0';
+window.__LIMU_VERSION = '20.56.0';
 (function(){
   var VERSION = window.__LIMU_VERSION;
   var el = document.getElementById('spl-static');
@@ -5053,10 +5075,10 @@ const NO_EXEMPT_HW = new Set(["聯絡簿", "國卷", "數卷"]); // 這些作業
 const DUAL_HW = new Set(["國卷", "數卷", "聽寫"]); // 雙排作業（訂正+簽名）
 const WEEKDAYS = ["日", "一", "二", "三", "四", "五", "六"];
 // v20.53：版本號單一來源，見開場控制器的 window.__LIMU_VERSION。
-const APP_VERSION = (typeof window !== 'undefined' && window.__LIMU_VERSION) || "20.55.0";
+const APP_VERSION = (typeof window !== 'undefined' && window.__LIMU_VERSION) || "20.56.0";
 const APP_BUILD_DATE = "2026-08-01";
-const APP_BUILD_ID = "limu-teacher-v20-55-20260801";
-const APP_CACHE_NAME = "hw-tracker-v20-55";
+const APP_BUILD_ID = "limu-teacher-v20-56-20260801";
+const APP_CACHE_NAME = "hw-tracker-v20-56";
 window.__LIMU_BUILD__ = Object.freeze({
     appVersion: APP_VERSION,
     buildDate: APP_BUILD_DATE,
@@ -14609,7 +14631,7 @@ function App() {
                 React.createElement("div", { style:{fontSize:19,fontWeight:900,flex:1} }, isNerv?"◈ TODAY OPERATIONS":"🏠 今日工作台"),
                 React.createElement("button", { onClick:openTodayWorkspace,disabled:todayDashboardBusy,style:{border:"none",borderRadius:9,padding:"6px 9px",background:isNerv?"rgba(255,102,0,.13)":"#e6edf6",color:"inherit",fontSize:11,fontWeight:800,cursor:"pointer"} }, "重新整理"),
                 // v20.54：底部彈出面板一律提供「回首頁」，不必先關窗再點月曆。
-                React.createElement("button", { onClick:function(){setShowTodayDashboard(false);setView("month");},disabled:todayDashboardBusy,'aria-label':"回到首頁",title:"回到首頁",style:{border:"1px solid currentColor",background:"transparent",color:"inherit",opacity:.72,fontSize:12,fontWeight:700,borderRadius:999,padding:"5px 11px",marginRight:10,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap",minHeight:32} }, "⌂ 首頁"),
+                React.createElement("button", { className:"sheet-home-btn", onClick:function(){setShowTodayDashboard(false);setView("month");},disabled:todayDashboardBusy,'aria-label':"回到首頁",title:"回到首頁",style:{border:"1px solid currentColor",background:"transparent",color:"inherit",opacity:.72,fontSize:12,fontWeight:700,borderRadius:999,padding:"5px 11px",marginRight:10,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap",minHeight:32} }, "⌂ 首頁"),
                 React.createElement("button", { onClick:function(){setShowTodayDashboard(false);},disabled:todayDashboardBusy,'aria-label':"關閉今日工作台",style:{border:"none",background:"transparent",color:"inherit",fontSize:24,cursor:"pointer"} }, "×")),
             React.createElement("div", { className:"mucha-panel-divider", "aria-hidden":"true" }),
             todayDashboardBusy && !todayDashboardData
@@ -14669,7 +14691,7 @@ function App() {
         }, React.createElement("div", { className:"v18-sheet-panel global-search-panel", style:{width:"100%",maxWidth:620,maxHeight:"88vh",overflowY:"auto",background:isNerv?"#100500":isNebula?"#111329":isMucha?"#f4ebdd":"#f8fafc",color:isNerv?"#ff9955":isNebula?"#d7ccff":isMucha?"#39312c":"#1e3a5f",borderRadius:20,padding:16,boxShadow:"0 20px 60px rgba(0,0,0,.48)"} },
             React.createElement("div", { style:{display:"flex",alignItems:"center",gap:8,marginBottom:11} },
                 React.createElement("div", { style:{fontSize:19,fontWeight:900,flex:1} }, isNerv?"◈ GLOBAL SEARCH":"🔎 全域搜尋"),
-                React.createElement("button", { onClick:function(){setShowGlobalSearch(false);setView("month");},disabled:globalSearchBusy,'aria-label':"回到首頁",title:"回到首頁",style:{border:"1px solid currentColor",background:"transparent",color:"inherit",opacity:.72,fontSize:12,fontWeight:700,borderRadius:999,padding:"5px 11px",cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap",minHeight:32} }, "⌂ 首頁"),
+                React.createElement("button", { className:"sheet-home-btn", onClick:function(){setShowGlobalSearch(false);setView("month");},disabled:globalSearchBusy,'aria-label':"回到首頁",title:"回到首頁",style:{border:"1px solid currentColor",background:"transparent",color:"inherit",opacity:.72,fontSize:12,fontWeight:700,borderRadius:999,padding:"5px 11px",cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap",minHeight:32} }, "⌂ 首頁"),
                 React.createElement("button", { onClick:function(){setShowGlobalSearch(false);},disabled:globalSearchBusy,'aria-label':"關閉全域搜尋",style:{border:"none",background:"transparent",color:"inherit",fontSize:24,cursor:"pointer"} }, "×")),
             React.createElement("div", { className:"mucha-panel-divider", "aria-hidden":"true" }),
             React.createElement("div", { style:{display:"flex",gap:7,marginBottom:9} },
@@ -14921,7 +14943,7 @@ function App() {
                 React.createElement("div", { style:{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12} },
                     React.createElement("div", { className: "gr-dialog-title", style:{margin:0} }, isNerv ? "[ GUIDANCE CENTER ]" : "📋 輔導紀錄中心"),
                     React.createElement("div", { style:{display:"flex",alignItems:"center"} },
-                        React.createElement("button", { onClick: function() { setGrCenter(false); setView("month"); }, 'aria-label':"回到首頁", title:"回到首頁", style:{border:"1px solid currentColor",background:"transparent",color:"inherit",opacity:.72,fontSize:12,fontWeight:700,borderRadius:999,padding:"5px 11px",marginRight:10,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap",minHeight:32} }, "⌂ 首頁"),
+                        React.createElement("button", { className:"sheet-home-btn", onClick: function() { setGrCenter(false); setView("month"); }, 'aria-label':"回到首頁", title:"回到首頁", style:{border:"1px solid currentColor",background:"transparent",color:"inherit",opacity:.72,fontSize:12,fontWeight:700,borderRadius:999,padding:"5px 11px",marginRight:10,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap",minHeight:32} }, "⌂ 首頁"),
                         React.createElement("button", { style:{background:"none",border:"none",fontSize:20,cursor:"pointer",color:"inherit",opacity:.6}, onClick: function() { setGrCenter(false); } }, "×")
                     )
                 ),
@@ -15812,8 +15834,8 @@ function App() {
   var updateRegistration = null;
   var reloadingForUpdate = false;
   var updateActivationRequested = false;
-  var SW_BUILD_ID = 'limu-teacher-v20-55-20260801';
-  var SW_CACHE_NAME = 'hw-tracker-v20-55';
+  var SW_BUILD_ID = 'limu-teacher-v20-56-20260801';
+  var SW_CACHE_NAME = 'hw-tracker-v20-56';
   var SW_URL = './sw.js?build=' + encodeURIComponent(SW_BUILD_ID);
   var lastUpdateCheck = 0;
   // v20.16：checkBuildConsistency 本來就有 15 秒節流，但 reg.update() 沒有。
