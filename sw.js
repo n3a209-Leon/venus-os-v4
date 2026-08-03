@@ -1,11 +1,11 @@
 // 教師專用小工具 PWA Service Worker
-// v20.16：修正 SW 預快取涵蓋範圍、素材容錯與快取比對；延續 v20.15 的 VENUS 圖示與全螢幕開場。
+// v20.64：延續核心三檔交叉驗證；本版完成視覺一致性與最終回歸，不新增離線素材。
 
 const CACHE_PREFIX = 'hw-tracker-';
-const CACHE_NAME = 'hw-tracker-v20-60';
-const BUILD_ID = 'limu-teacher-v20-60-20260801';
+const CACHE_NAME = 'hw-tracker-v20-64';
+const BUILD_ID = 'limu-teacher-v20-64-20260804';
 // 頁面會核對這個完整字面標記；不可改回由兩段字串拼接，否則會再次誤報。
-const DEPLOYMENT_MARKER = 'limu-teacher-v20-60-20260801|hw-tracker-v20-60';
+const DEPLOYMENT_MARKER = 'limu-teacher-v20-64-20260804|hw-tracker-v20-64';
 // 用來判斷「這是一份完整的 App shell」，不限定版本。
 const BUILD_ID_PATTERN = /limu-teacher-v\d+-\d+-\d{8}/;
 const PRECACHE_URLS = [
@@ -24,11 +24,18 @@ const PRECACHE_URLS = [
   './assets/mucha-empty-ornament.webp',
   './assets/mucha-gap-divider.webp',
   './assets/mucha-master-frame.webp',
+  './assets/mucha-divider-v20-62.svg',
   './assets/nebula-edge-left.webp',
   './assets/nebula-edge-right.webp',
   './assets/nebula-mucha-edge.webp',
+  './assets/nebula-divider-v20-62.svg',
+  './assets/nebula-empty-v20-62.svg',
+  './assets/nebula-frame-v20-62.svg',
+  './assets/nebula-route-v20-62.svg',
+  './assets/odyssey-compass-v20-62.svg',
   './assets/odyssey-divider.svg',
   './assets/odyssey-frame.svg',
+  './assets/odyssey-frame-v20-62.svg',
   './assets/odyssey-sea-chart.svg',
   './assets/signature-blue-iris.webp',
   './assets/splash-art.jpg'
@@ -69,7 +76,8 @@ self.addEventListener('install', function(event) {
         // App shell 本體是關鍵路徑，任何一項失敗就該讓 install 失敗。
         var shell = Promise.all([
           cache.put('./version.json', bundle.responses[0].clone()),
-          cache.put('./index.html', bundle.responses[1].clone())
+          cache.put('./index.html', bundle.responses[1].clone()),
+          cache.put('./sw.js', bundle.responses[2].clone())
         ]);
         // v20.16：素材改用 allSettled。舊版整包 Promise.all，只要有一張圖沒上傳
         // 成功，install 就 reject → SW 永遠不啟用 → 整個離線能力靜默消失，

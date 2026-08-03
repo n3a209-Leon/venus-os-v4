@@ -4,7 +4,8 @@
 
 ## tools/bump-version.mjs — 版本號同步
 
-版本識別散在 **9 個地方**：`index.html` 6 處、`sw.js` 3 處、`version.json` 3 欄。
+版本識別散在 **10 個字串位置**：`index.html` 7 處、`sw.js` 3 處，另有
+`version.json` 4 欄。建置日期也會在升版當天一起更新，不再沿用舊日期。
 手動同步至少出過兩次事：
 
 - 有一版 `sw.js` 被一行有副作用的批次指令清成 0 byte，是碰巧 grep 沒輸出才發現
@@ -13,7 +14,7 @@
 ```bash
 node tools/bump-version.mjs --check     # 只檢查一致性，不改檔案
 node tools/bump-version.mjs patch       # 20.58.0 → 20.59.0
-node tools/bump-version.mjs 20.60.0     # 指定版本
+node tools/bump-version.mjs 20.61.0     # 指定版本
 ```
 
 寫檔前會確認每個檔案都不是空的、替換後確實含有新的版本識別；
@@ -35,8 +36,8 @@ node tools/bump-version.mjs 20.60.0     # 指定版本
 ```bash
 npm install playwright
 npx playwright install chromium
-node tools/visual-check.mjs                  # 23 項斷言
-node tools/visual-check.mjs --shots out/     # 順便存四張截圖
+node tools/visual-check.mjs                  # 53 項斷言
+node tools/visual-check.mjs --shots out/     # 順便存十張截圖
 ```
 
 腳本自帶一個臨時靜態伺服器（用 `file://` 會因為 react-dom 那支 script
@@ -45,8 +46,9 @@ node tools/visual-check.mjs --shots out/     # 順便存四張截圖
 
 檢查項目涵蓋：開場層與圖片是否滿版、開場影像路徑有無 transform、
 工作欄的懸浮位置／圓角／有無 backdrop-filter／是否純圖示、
-面板的圓角與把手、開窗時工作欄是否收起、**畫布底色是否真的同步**、
-回首頁鈕的位置與尺寸、關窗後是否完整還原、班級設定有無巢狀捲動容器。
+面板的圓角、SVG、把手與橫向溢出、開窗時工作欄是否收起、
+**畫布底色是否真的同步**、回首頁鈕的位置與尺寸、關窗後是否完整還原、
+班級設定首次起滑、五套主題、5／6／7 組日表、文字對比與低動態模式。
 
 ### 它測不到什麼
 

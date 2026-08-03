@@ -1548,17 +1548,6 @@
         }
         /* ══ END SPLASH ══════════════════════════════════════════════ */
 
-        /* ── Ripple 點擊波紋 ── */
-        .ripple-wave {
-          position:absolute; border-radius:50%;
-          background:rgba(255,255,255,0.28);
-          transform:scale(0); pointer-events:none;
-          animation:ripple-expand 0.45s ease-out forwards;
-        }
-        @keyframes ripple-expand {
-          to { transform:scale(5); opacity:0; }
-        }
-
         /* ══ DAY NAV BAR ════════════════════════════════════════════ */
         .day-nav-bar {
           display:flex; align-items:center; justify-content:space-between;
@@ -2746,7 +2735,7 @@
           border-image-source:var(--limu-art-master-frame);
           border-image-slice:13% 16%;
           border-image-width:38px 20px 34px;
-          border-image-repeat:stretch;
+          border-image-repeat:round;
           opacity:.88;
           filter:saturate(1.03) contrast(1.05) drop-shadow(0 2px 3px rgba(78,55,30,.16));
           pointer-events:none;
@@ -2877,7 +2866,7 @@
           border-image-source:var(--limu-art-card-frame);
           border-image-slice:17% 12%;
           border-image-width:10px 7px;
-          border-image-repeat:stretch;
+          border-image-repeat:round;
           opacity:.90;
           filter:saturate(1.02) contrast(1.04) drop-shadow(0 1px 2px rgba(80,58,31,.12));
           pointer-events:none;
@@ -2984,7 +2973,7 @@
           border-image-source:var(--limu-art-card-frame);
           border-image-slice:17% 12%;
           border-image-width:11px 8px;
-          border-image-repeat:stretch;
+          border-image-repeat:round;
           opacity:.72;
           pointer-events:none;
         }
@@ -3015,7 +3004,7 @@
           width:100%;
           height:34px;
           margin:-3px 0 5px;
-          background:var(--limu-art-gap-divider) center/100% 100% no-repeat;
+          background:url("./assets/mucha-divider-v20-62.svg") center/320px 18px no-repeat;
           opacity:.82;
           pointer-events:none;
         }
@@ -3321,7 +3310,7 @@
           background:
             var(--limu-art-nebula-left) left top/52px auto no-repeat,
             var(--limu-art-nebula-right) right top/52px auto no-repeat,
-            var(--limu-art-nebula-frame) center top/100% 132px no-repeat;
+            url("./assets/nebula-route-v20-62.svg") center top/720px auto no-repeat;
           opacity:.82;
           mix-blend-mode:screen;
           filter:saturate(1.15) brightness(1.16) drop-shadow(0 0 8px rgba(103,74,210,.34));
@@ -3371,7 +3360,7 @@
           border-image-source:var(--limu-art-nebula-frame);
           border-image-slice:30% 18%;
           border-image-width:10px 7px;
-          border-image-repeat:stretch;
+          border-image-repeat:round;
           opacity:.82;
           mix-blend-mode:screen;
           filter:saturate(1.15) brightness(1.14) drop-shadow(0 0 6px rgba(102,74,208,.28));
@@ -3512,7 +3501,7 @@
           border-image-source:var(--limu-art-master-frame);
           border-image-slice:13% 16%;
           border-image-width:15px 7px 12px;
-          border-image-repeat:stretch;
+          border-image-repeat:round;
           background:none;
           opacity:.44;
           mix-blend-mode:normal;
@@ -3671,7 +3660,7 @@
         .app[data-theme="odyssey"] .calendar{position:relative;isolation:isolate}
         .app[data-theme="odyssey"] .calendar::after{
           content:"";position:absolute;inset:5px;z-index:0;pointer-events:none;
-          border:14px solid transparent;border-image:url("./assets/odyssey-frame.svg") 28 fill stretch;
+          border:14px solid transparent;border-image:url("./assets/odyssey-frame-v20-62.svg") 48 round;
           opacity:.42;
         }
         .app[data-theme="odyssey"] .calendar>*{position:relative;z-index:1}
@@ -3783,6 +3772,483 @@
             animation:none!important;
           }
           .mobile-dock{transform:translate3d(0,0,0)}
+        }
+
+        /* ══ v20.62：Venus Refinement — 共用視覺規格與無拉伸裝飾 ═══════
+           具象花朵、星圖與羅盤只按原比例縮放；需要延長的部分改由純線段負責。
+           所有裝飾維持 pointer-events:none，且不改變既有觸控範圍與安全區。 */
+        .app{
+          --venus-card-radius:18px;
+          --venus-panel-radius:28px;
+          --venus-control-radius:12px;
+          --venus-icon-size:22px;
+          --venus-icon-stroke:2;
+        }
+        .app:not([data-theme="nerv"]) .calendar,
+        .app:not([data-theme="nerv"]) .month-summary,
+        .app:not([data-theme="nerv"]) .table-wrapper,
+        .app:not([data-theme="nerv"]) .att-panel,
+        .app:not([data-theme="nerv"]) .exempt-panel,
+        .app:not([data-theme="nerv"]) .slip-panel,
+        .app:not([data-theme="nerv"]) .day-view-card,
+        .app:not([data-theme="nerv"]) .class-locator-hero{
+          border-radius:var(--venus-card-radius);
+        }
+        .venus-ui-icon{
+          display:block;
+          width:var(--venus-icon-size);
+          height:var(--venus-icon-size);
+          flex:0 0 auto;
+          overflow:visible;
+          stroke-width:var(--venus-icon-stroke);
+          pointer-events:none;
+        }
+        .hi-row1 .venus-ui-icon{width:20px;height:20px}
+        .dock-icon{
+          width:24px;
+          height:24px;
+          display:inline-flex;
+          align-items:center;
+          justify-content:center;
+          color:inherit;
+        }
+        .dock-icon .venus-ui-icon{width:22px;height:22px}
+        .login-mark-icon{width:48px;height:48px;stroke-width:1.6}
+
+        /* 慕夏：保留標題鳶尾與空狀態藝術，主內容只用等比例角飾與細金線。 */
+        .app[data-theme="mucha"] main{
+          box-shadow:inset 1px 0 rgba(178,138,69,.20),inset -1px 0 rgba(178,138,69,.20);
+        }
+        .app[data-theme="mucha"] main::before,
+        .app[data-theme="mucha"] main::after{
+          content:"";
+          position:absolute;
+          inset:auto;
+          top:-2px;
+          bottom:auto;
+          width:96px;
+          height:96px;
+          min-height:0;
+          z-index:0;
+          border:0;
+          border-image:none;
+          background:url("./assets/mucha-corner.webp") left top/contain no-repeat;
+          opacity:.26;
+          filter:none;
+          mix-blend-mode:normal;
+          pointer-events:none;
+          user-select:none;
+        }
+        .app[data-theme="mucha"] main::before{left:5px}
+        .app[data-theme="mucha"] main::after{right:5px;transform:scaleX(-1)}
+        .app[data-theme="mucha"] .calendar::after,
+        .app[data-theme="mucha"] .month-summary::after,
+        .app[data-theme="mucha"] .class-locator-hero::after{
+          inset:5px;
+          border:1px solid rgba(178,138,69,.30);
+          border-image:none;
+          border-radius:calc(var(--venus-card-radius) - 5px);
+          background:none;
+          box-shadow:inset 0 0 0 1px rgba(255,252,242,.42);
+          opacity:.62;
+          filter:none;
+        }
+        body.limu-theme-mucha .v18-sheet-panel::before,
+        body.limu-theme-mucha .theme-menu-panel::before{
+          inset:6px;
+          border:1px solid rgba(178,138,69,.34);
+          border-image:none;
+          background:none;
+          box-shadow:inset 0 0 0 1px rgba(255,252,242,.38);
+          opacity:.66;
+          filter:none;
+        }
+        body.limu-theme-mucha .mucha-panel-divider,
+        .app[data-theme="mucha"] .theme-ornament-band{
+          height:26px;
+          min-height:26px;
+          margin:0 auto;
+          background:url("./assets/mucha-divider-v20-62.svg") center/320px 18px no-repeat;
+          opacity:.78;
+          filter:none;
+        }
+        .app[data-theme="mucha"] .class-context-bar::after,
+        .app[data-theme="mucha"] .header-status-stack::after{
+          left:8px;
+          right:8px;
+          bottom:0;
+          height:1px;
+          background:linear-gradient(90deg,transparent,rgba(178,138,69,.58) 20%,rgba(143,193,211,.32) 50%,rgba(178,138,69,.58) 80%,transparent);
+          opacity:.72;
+        }
+
+        /* 星雲：不再借用花卉外框，改為靜態航線、星圖節點與細緻角標。 */
+        .app[data-theme="nebula"] header{
+          animation:none;
+          box-shadow:0 6px 24px rgba(0,0,0,.36),inset 0 -1px rgba(157,134,255,.18);
+        }
+        .app[data-theme="nebula"] main::before{
+          content:"";
+          position:absolute;
+          inset:-4px 0 auto;
+          width:auto;
+          height:132px;
+          min-height:0;
+          z-index:1;
+          border:0;
+          border-image:none;
+          background:url("./assets/nebula-route-v20-62.svg") center top/720px auto no-repeat;
+          opacity:.58;
+          filter:none;
+          mix-blend-mode:normal;
+          pointer-events:none;
+        }
+        .app[data-theme="nebula"] main::after{content:none}
+        .app[data-theme="nebula"] .calendar::after{
+          inset:3px;
+          border:9px solid transparent;
+          border-image-source:url("./assets/nebula-frame-v20-62.svg");
+          border-image-slice:48;
+          border-image-width:9px;
+          border-image-repeat:round;
+          border-radius:14px;
+          background:none;
+          opacity:.54;
+          filter:none;
+          mix-blend-mode:normal;
+        }
+        .app[data-theme="nebula"] .hi-row1::after,
+        .app[data-theme="nebula"] .class-context-bar::after,
+        .app[data-theme="nebula"] .header-status-stack::after,
+        .app[data-theme="nebula"] .theme-ornament-band{
+          background:url("./assets/nebula-divider-v20-62.svg") center/320px 18px no-repeat;
+          opacity:.64;
+          filter:none;
+        }
+        .app[data-theme="nebula"] .class-context-bar::after,
+        .app[data-theme="nebula"] .header-status-stack::after{
+          left:8px;
+          right:8px;
+          bottom:0;
+          height:18px;
+        }
+        .app[data-theme="nebula"] .theme-ornament-band{height:26px;min-height:26px;margin:0 auto}
+        .app[data-theme="nebula"] .month-label::after{content:"  ✦";color:rgba(215,186,129,.58);letter-spacing:2px}
+        .app[data-theme="nebula"] .ov,
+        .app[data-theme="nebula"] .mo{
+          backdrop-filter:none;
+          -webkit-backdrop-filter:none;
+        }
+        .app[data-theme="nebula"] .nb.sub,
+        .app[data-theme="nebula"] .nb.done{
+          animation:none;
+          transform:scale(1.02);
+          box-shadow:0 0 12px rgba(60,220,120,.52),inset 0 0 0 1px rgba(160,255,204,.12);
+        }
+
+        /* 奧德賽：石灰岩紙面上只留青銅羅盤、海圖航線與低密度希臘文字。 */
+        .app[data-theme="odyssey"] main{position:relative;isolation:isolate}
+        .app[data-theme="odyssey"] main::before{
+          content:"";
+          position:absolute;
+          top:8px;
+          right:8px;
+          width:164px;
+          height:164px;
+          z-index:0;
+          background:url("./assets/odyssey-compass-v20-62.svg") center/contain no-repeat;
+          opacity:.17;
+          pointer-events:none;
+        }
+        .app[data-theme="odyssey"] main>*{position:relative;z-index:1}
+        .app[data-theme="odyssey"] header::after{
+          content:"ΝΟΣΤΟΣ  •  ΙΘΑΚΗ";
+          letter-spacing:2px;
+          opacity:.78;
+        }
+        .app[data-theme="odyssey"] .hi-row1{
+          position:relative;
+          padding:3px 5px;
+          border:1px solid rgba(213,184,121,.26);
+          border-radius:16px;
+          background:linear-gradient(180deg,rgba(213,184,121,.07),rgba(213,184,121,.015));
+          box-shadow:inset 0 0 0 1px rgba(255,244,214,.035);
+        }
+        .app[data-theme="odyssey"] .hi-row1>*{position:relative;z-index:1}
+        .app[data-theme="odyssey"] .calendar::after{
+          inset:4px;
+          border:9px solid transparent;
+          border-image-source:url("./assets/odyssey-frame-v20-62.svg");
+          border-image-slice:48;
+          border-image-width:9px;
+          border-image-repeat:round;
+          background:none;
+          opacity:.50;
+          filter:none;
+        }
+        .app[data-theme="odyssey"] .class-context-bar{
+          box-shadow:0 6px 20px rgba(4,18,24,.22),inset 0 -1px rgba(213,184,121,.13);
+        }
+
+        @media(max-width:640px){
+          .app[data-theme="mucha"] main::before,
+          .app[data-theme="mucha"] main::after{top:0;width:72px;height:72px;opacity:.22}
+          body.limu-theme-mucha .mucha-panel-divider,
+          .app[data-theme="mucha"] .theme-ornament-band,
+          .app[data-theme="nebula"] .theme-ornament-band{height:24px;min-height:24px}
+          .app[data-theme="nebula"] main::before{height:104px;background-size:430px auto;opacity:.44}
+          .app[data-theme="nebula"] .ov,
+          .app[data-theme="nebula"] .mo{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+          .app[data-theme="odyssey"] main::before{top:4px;right:0;width:112px;height:112px;opacity:.12}
+          .app[data-theme="odyssey"] .hi-row1{padding:2px 3px}
+          .app[data-theme="odyssey"] header::after{right:9px;letter-spacing:1.2px}
+        }
+
+        /* ══ v20.63：互動優先與 Venus OS Toast ════════════════════════════
+           班級設定分頁只接受垂直原生捲動或完整點擊；手指開始拖曳時，不讓
+           button 的點擊命中測試先把 Safari 的捲動手勢扣住。 */
+        .settings-tabbar,.settings-tab-btn{touch-action:pan-y}
+        .settings-tab-btn{
+          -webkit-user-select:none;
+          user-select:none;
+          -webkit-touch-callout:none;
+          -webkit-tap-highlight-color:transparent;
+        }
+        .hw-touch-feedback{
+          touch-action:manipulation;
+          transition:transform .08s ease,opacity .08s ease!important;
+        }
+        .hw-touch-feedback:active{transform:scale(.975);opacity:.84}
+
+        .venus-toast-region{
+          position:fixed;
+          left:50%;
+          bottom:calc(94px + var(--safe-bottom));
+          z-index:120000;
+          width:min(420px,calc(100vw - 28px));
+          display:flex;
+          flex-direction:column;
+          align-items:center;
+          gap:8px;
+          transform:translateX(-50%);
+          pointer-events:none;
+          contain:layout style paint;
+        }
+        body.v18-modal-open .venus-toast-region{bottom:calc(20px + var(--safe-bottom))}
+        .venus-toast{
+          width:max-content;
+          max-width:100%;
+          min-height:44px;
+          box-sizing:border-box;
+          display:flex;
+          align-items:center;
+          gap:9px;
+          padding:10px 15px;
+          border:1px solid rgba(255,255,255,.18);
+          border-radius:16px;
+          background:rgba(20,32,46,.96);
+          color:#f7fbff;
+          box-shadow:0 12px 32px rgba(8,18,30,.26);
+          font-size:13px;
+          font-weight:700;
+          line-height:1.45;
+          white-space:pre-line;
+          opacity:0;
+          transform:translateY(10px) scale(.98);
+          transition:opacity .16s ease,transform .16s ease;
+        }
+        .venus-toast::before{
+          content:"i";
+          flex:0 0 20px;
+          width:20px;
+          height:20px;
+          display:grid;
+          place-items:center;
+          border-radius:50%;
+          background:rgba(129,182,230,.2);
+          color:#beddff;
+          font-size:12px;
+          font-weight:900;
+        }
+        .venus-toast[data-kind="success"]::before{content:"✓";background:rgba(73,195,135,.22);color:#95edbd}
+        .venus-toast[data-kind="warning"]::before{content:"!";background:rgba(236,169,65,.22);color:#ffd38b}
+        .venus-toast[data-kind="error"]::before{content:"×";background:rgba(226,86,104,.22);color:#ffafb9}
+        .venus-toast.is-visible{opacity:1;transform:translateY(0) scale(1)}
+        .venus-toast.is-leaving{opacity:0;transform:translateY(-6px) scale(.98)}
+        .venus-toast-region[data-theme="nerv"] .venus-toast{border-color:rgba(255,102,0,.42);background:rgba(16,5,1,.97);color:#ff9b59;font-family:'Share Tech Mono',monospace}
+        .venus-toast-region[data-theme="nebula"] .venus-toast{border-color:rgba(156,126,255,.34);background:rgba(18,16,46,.97);color:#e4dcff}
+        .venus-toast-region[data-theme="mucha"] .venus-toast{border-color:rgba(160,119,58,.36);background:rgba(48,42,37,.97);color:#fff8ec}
+        .venus-toast-region[data-theme="odyssey"] .venus-toast{border-color:rgba(206,169,99,.42);background:rgba(15,37,42,.97);color:#f4e7c8}
+        @media(prefers-reduced-motion:reduce){
+          .venus-toast,.hw-touch-feedback{transition:none!important}
+        }
+
+        /* ══ v20.64：Final Refinement — 對比、字體與功能面板收斂 ════════
+           最終版只做不改版面流與資料流程的精修：原生中文字體優先、數字等寬、
+           奧德賽資訊對比、星雲標題避讓，以及 Venus OS 共用線性圖示。 */
+        .app{
+          font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;
+          -webkit-font-smoothing:antialiased;
+          -moz-osx-font-smoothing:grayscale;
+          text-rendering:optimizeLegibility;
+        }
+        button,input,textarea,select{font-family:inherit}
+        .cal-day,.month-label,.date-label,.stor-bar,.class-context-title,
+        .class-context-status,.sum-date,.badge,.att-num,.spl-build{
+          font-variant-numeric:tabular-nums lining-nums;
+        }
+        .class-context-pin .venus-ui-icon{width:17px;height:17px;stroke-width:2.2}
+
+        /* 星雲的完整航線已保留在內容區；標題列只用 flex 內的細線，
+           避免裝飾跨過 LIMU、版本號或操作按鈕。 */
+        .app[data-theme="nebula"] .hi-row1::after{content:none}
+
+        /* 奧德賽原本沿用預設深藍文字，在深海藍定位列上對比不足。 */
+        .app[data-theme="odyssey"] .class-context-main{color:#f7eccf}
+        .app[data-theme="odyssey"] .class-context-title{color:#f7eccf;text-shadow:0 1px 2px rgba(0,0,0,.34)}
+        .app[data-theme="odyssey"] .class-context-meta{color:rgba(247,236,207,.70)}
+        .app[data-theme="odyssey"] .class-context-pin{
+          color:#102b35;
+          background:linear-gradient(145deg,#d3b06d,#a4773d);
+          border:1px solid rgba(255,240,203,.42);
+          box-shadow:0 5px 14px rgba(3,16,22,.28);
+        }
+        .app[data-theme="odyssey"] .class-context-status{
+          color:#bfe9d1;
+          border-color:rgba(122,205,166,.30);
+          background:rgba(32,111,80,.24);
+        }
+        .app[data-theme="odyssey"] .class-context-status.pending{color:#ffe0a0;border-color:rgba(229,176,78,.34);background:rgba(145,96,20,.28)}
+        .app[data-theme="odyssey"] .class-context-status.conflict{color:#ffc0c7;border-color:rgba(233,113,126,.36);background:rgba(137,42,54,.30)}
+        .app[data-theme="odyssey"] .class-context-status.offline{color:#d1d8d9;border-color:rgba(198,210,212,.28);background:rgba(88,105,109,.28)}
+        .app[data-theme="odyssey"] .wd{color:#58442a;text-shadow:none;font-weight:900}
+        .app[data-theme="odyssey"] .cal-empty{background:rgba(224,216,200,.58)}
+
+        /* Venus OS 功能面板：和底部 Dock 共用 24px／2px 線性圖示，
+           移除依裝置而異的彩色 emoji，保持每套主題自己的色票。 */
+        .gear-menu-panel{
+          color:var(--card-fg);
+          background:var(--card-bg);
+          border:1px solid var(--card-line);
+          border-bottom:0;
+          isolation:isolate;
+        }
+        .gear-menu-panel::before{
+          content:"";
+          position:absolute;
+          top:11px;
+          left:50%;
+          width:38px;
+          height:4px;
+          margin-left:-19px;
+          border-radius:999px;
+          background:currentColor;
+          opacity:.20;
+          pointer-events:none;
+        }
+        .gear-menu-title{
+          padding:1px 24px 4px;
+          margin-bottom:7px;
+          color:inherit;
+          opacity:.52;
+          text-align:center;
+          font-size:11px;
+          line-height:1.3;
+          font-weight:800;
+          letter-spacing:3px;
+        }
+        .gear-account-row{
+          display:flex;
+          align-items:center;
+          gap:10px;
+          min-height:58px;
+          padding:9px 20px 13px;
+          border-bottom:1px solid var(--card-line);
+        }
+        .gear-account-icon,.gear-menu-icon{
+          flex:0 0 auto;
+          display:grid;
+          place-items:center;
+          color:inherit;
+          border:1px solid var(--card-line);
+          background:var(--card-chip);
+        }
+        .gear-account-icon{width:32px;height:32px;border-radius:11px}
+        .gear-account-icon .venus-ui-icon{width:17px;height:17px}
+        .gear-account-copy{
+          flex:1;
+          min-width:0;
+          overflow:hidden;
+          color:inherit;
+          font-size:13px;
+          line-height:1.35;
+          opacity:.80;
+          text-overflow:ellipsis;
+          white-space:nowrap;
+        }
+        .gear-account-action{
+          flex:0 0 auto;
+          min-height:36px;
+          padding:7px 11px;
+          border:1px solid var(--card-line);
+          border-radius:10px;
+          background:var(--card-chip);
+          color:inherit;
+          font-size:12px;
+          font-weight:800;
+        }
+        .gear-menu-item{
+          width:100%;
+          min-height:62px;
+          display:flex;
+          align-items:center;
+          gap:13px;
+          padding:10px 22px;
+          border:0;
+          border-top:1px solid var(--card-line);
+          background:transparent;
+          color:inherit;
+          text-align:left;
+          font-size:14px;
+          font-weight:750;
+          letter-spacing:.1px;
+          transition:background .12s ease,color .12s ease;
+        }
+        .gear-menu-item:first-of-type{border-top:0}
+        .gear-menu-item:active{background:var(--card-chip);filter:none}
+        .gear-menu-item:disabled{opacity:.55}
+        .gear-menu-icon{width:38px;height:38px;border-radius:13px}
+        .gear-menu-icon .venus-ui-icon{width:19px;height:19px}
+        .gear-menu-label{flex:1;min-width:0}
+        .gear-menu-chevron{font-size:19px;font-weight:500;opacity:.35}
+        .app[data-theme="nerv"] .gear-menu-panel{border-color:rgba(255,102,0,.38)}
+        .app[data-theme="nerv"] .gear-menu-title,
+        .app[data-theme="nerv"] .gear-menu-item,
+        .app[data-theme="nerv"] .gear-account-copy{font-family:"Share Tech Mono",monospace}
+        .app[data-theme="nerv"] .gear-menu-icon,
+        .app[data-theme="nerv"] .gear-account-icon{border-radius:2px}
+        .app[data-theme="mucha"] .gear-menu-icon,
+        .app[data-theme="mucha"] .gear-account-icon{box-shadow:inset 0 0 0 1px rgba(255,252,242,.38)}
+        .app[data-theme="nebula"] .gear-menu-icon,
+        .app[data-theme="nebula"] .gear-account-icon{box-shadow:inset 0 0 0 1px rgba(210,198,255,.05)}
+        .app[data-theme="odyssey"] .gear-menu-icon,
+        .app[data-theme="odyssey"] .gear-account-icon{border-color:rgba(137,99,54,.26)}
+
+        /* 清楚但不刺眼的鍵盤／輔助操作焦點。 */
+        .app[data-theme="default"] :focus-visible{outline-color:#2f78ae}
+        .app[data-theme="nerv"] :focus-visible{outline-color:#ff7a28}
+        .app[data-theme="mucha"] :focus-visible{outline-color:#a77b35}
+        .app[data-theme="nebula"] :focus-visible{outline-color:#a98cff}
+        .app[data-theme="odyssey"] :focus-visible{outline-color:#c79a55}
+        @media(hover:hover) and (pointer:fine){
+          .gear-menu-item:hover{background:var(--card-chip)}
+        }
+        @media(max-width:640px){
+          .gear-menu-panel{border-radius:28px 28px 0 0!important}
+          .gear-menu-item{min-height:60px;padding-left:20px;padding-right:20px}
+        }
+        @media(prefers-reduced-motion:reduce){
+          .gear-menu-item{transition:none!important}
         }
 </style>
 <script id="limu-external-art-map">
@@ -4198,7 +4664,7 @@
    下次改版若漏改其中一個，開場會顯示舊版本——而那行字正是我們用來判斷
    Service Worker 有沒有換版的依據，錯了會直接誤導除錯方向。
    改由這裡單一定義，APP_VERSION 從這裡取。 */
-window.__LIMU_VERSION = '20.60.0';
+window.__LIMU_VERSION = '20.64.0';
 (function(){
   var VERSION = window.__LIMU_VERSION;
   var el = document.getElementById('spl-static');
@@ -4420,6 +4886,53 @@ window.addEventListener('pageshow', function(e) {
   document.addEventListener('touchcancel', function(){ touchActive = false; setBusy(); }, { passive:true });
   window.addEventListener('scroll', setBusy, { passive:true });
   window.LIMUInteraction = Object.freeze({ isBusy:isBusy, runWhenIdle:runWhenIdle });
+})();
+
+// v20.63：一般完成訊息不再用會阻塞主執行緒的 alert。
+// 危險操作、錯誤與需要使用者決定的流程仍保留原生確認視窗。
+(function() {
+  var region = null;
+  function ensureRegion() {
+    if (region && region.isConnected) return region;
+    region = document.createElement('div');
+    region.className = 'venus-toast-region';
+    region.setAttribute('role', 'status');
+    region.setAttribute('aria-live', 'polite');
+    region.setAttribute('aria-atomic', 'false');
+    document.body.appendChild(region);
+    return region;
+  }
+  function dismiss(toast) {
+    if (!toast || toast.dataset.closing === '1') return;
+    toast.dataset.closing = '1';
+    toast.classList.remove('is-visible');
+    toast.classList.add('is-leaving');
+    setTimeout(function() {
+      if (toast.parentNode) toast.parentNode.removeChild(toast);
+    }, 190);
+  }
+  function show(message, options) {
+    var opts = options || {};
+    var host = ensureRegion();
+    var app = document.querySelector('.app[data-theme]');
+    host.setAttribute('data-theme', app ? (app.getAttribute('data-theme') || 'default') : 'default');
+    while (host.children.length >= 3) host.removeChild(host.firstElementChild);
+    var toast = document.createElement('div');
+    toast.className = 'venus-toast';
+    toast.setAttribute('data-kind', opts.kind || 'info');
+    toast.textContent = String(message || '');
+    host.appendChild(toast);
+    requestAnimationFrame(function() { toast.classList.add('is-visible'); });
+    var duration = Math.max(1600, Math.min(6000, Number(opts.duration) || 2800));
+    var timer = setTimeout(function() { dismiss(toast); }, duration);
+    return Object.freeze({
+      dismiss:function() { clearTimeout(timer); dismiss(toast); }
+    });
+  }
+  window.LIMUToast = Object.freeze({ show:show });
+  window.showVenusToast = function(message, kind, duration) {
+    return show(message, { kind:kind || 'info', duration:duration });
+  };
 })();
 try {
   _isPWA = window.navigator.standalone === true ||
@@ -5117,10 +5630,10 @@ const NO_EXEMPT_HW = new Set(["聯絡簿", "國卷", "數卷"]); // 這些作業
 const DUAL_HW = new Set(["國卷", "數卷", "聽寫"]); // 雙排作業（訂正+簽名）
 const WEEKDAYS = ["日", "一", "二", "三", "四", "五", "六"];
 // v20.53：版本號單一來源，見開場控制器的 window.__LIMU_VERSION。
-const APP_VERSION = (typeof window !== 'undefined' && window.__LIMU_VERSION) || "20.60.0";
-const APP_BUILD_DATE = "2026-08-01";
-const APP_BUILD_ID = "limu-teacher-v20-60-20260801";
-const APP_CACHE_NAME = "hw-tracker-v20-60";
+const APP_VERSION = (typeof window !== 'undefined' && window.__LIMU_VERSION) || "20.64.0";
+const APP_BUILD_DATE = "2026-08-04";
+const APP_BUILD_ID = "limu-teacher-v20-64-20260804";
+const APP_CACHE_NAME = "hw-tracker-v20-64";
 window.__LIMU_BUILD__ = Object.freeze({
     appVersion: APP_VERSION,
     buildDate: APP_BUILD_DATE,
@@ -5625,6 +6138,56 @@ function academicYearForDate(dateStr) {
     if (!isValidIsoDate(dateStr)) return '';
     var year = parseInt(dateStr.slice(0,4), 10), month = parseInt(dateStr.slice(5,7), 10);
     return String(month >= 8 ? year : year - 1);
+}
+// 內建行事曆只放跨校共通的學期節點與國定假日；定期評量、運動會等
+// 校本日期一律交由「公開行事曆匯入」補上，避免把某一校日期套到所有班級。
+const BUILT_IN_SCHOOL_CALENDARS = Object.freeze({
+    '2025': Object.freeze({
+        '2025-08-29':'開學準備', '2025-09-01':'🏫 開學日',
+        '2025-09-28':'教師節', '2025-09-29':'🔴 教師節補假',
+        '2025-10-06':'🔴 中秋節', '2025-10-10':'🔴 國慶日',
+        '2025-10-24':'🔴 光復節補假', '2025-10-25':'光復節',
+        '2025-12-25':'🔴 行憲紀念日', '2026-01-01':'🔴 開國紀念日',
+        '2026-01-20':'🏁 第一學期休業式', '2026-01-21':'❄️ 寒假開始',
+        '2026-02-10':'寒假結束', '2026-02-11':'🏫 第二學期開學日',
+        '2026-02-16':'🔴 除夕', '2026-02-17':'🔴 春節假期',
+        '2026-02-27':'🔴 和平紀念日補假', '2026-02-28':'和平紀念日',
+        '2026-04-03':'🔴 兒童節補假', '2026-04-04':'兒童節',
+        '2026-04-05':'清明節', '2026-04-06':'🔴 清明節補假',
+        '2026-05-01':'🔴 勞動節', '2026-06-19':'🔴 端午節',
+        '2026-06-30':'🏁 第二學期休業式', '2026-07-01':'☀️ 暑假開始'
+    }),
+    '2026': Object.freeze({
+        '2026-08-28':'開學準備（暑假結束）', '2026-08-31':'🏫 第一學期開學日',
+        '2026-09-25':'🔴 中秋節', '2026-09-28':'🔴 教師節',
+        '2026-10-09':'🔴 國慶日補假', '2026-10-10':'國慶日',
+        '2026-10-25':'光復節', '2026-10-26':'🔴 光復節補假',
+        '2026-12-25':'🔴 行憲紀念日', '2027-01-01':'🔴 開國紀念日',
+        '2027-01-20':'🏁 第一學期休業式', '2027-01-21':'❄️ 寒假開始',
+        '2027-02-04':'🔴 小年夜', '2027-02-05':'🔴 除夕',
+        '2027-02-06':'🔴 春節假期', '2027-02-10':'寒假結束',
+        '2027-02-11':'🏫 第二學期開學日', '2027-02-28':'和平紀念日',
+        '2027-03-01':'🔴 和平紀念日補假', '2027-04-04':'兒童節',
+        '2027-04-05':'🔴 清明節', '2027-04-06':'🔴 兒童節補假',
+        '2027-04-30':'🔴 勞動節補假', '2027-05-01':'勞動節',
+        '2027-06-09':'🔴 端午節', '2027-06-30':'🏁 第二學期休業式',
+        '2027-07-01':'☀️ 暑假開始'
+    })
+});
+function builtInSchoolCalendarForYear(schoolYearValue) {
+    var normalized = normalizeAcademicYear(schoolYearValue);
+    var source = normalized.valid ? BUILT_IN_SCHOOL_CALENDARS[String(normalized.startYear)] : null;
+    return source ? Object.assign({}, source) : {};
+}
+function schoolYearTransitionDefaults(schoolYearValue) {
+    var normalized = normalizeAcademicYear(schoolYearValue);
+    if (!normalized.valid) return { semStart1:'', semStart2:'' };
+    if (normalized.startYear === 2025) return { semStart1:'2025-09-01', semStart2:'2026-02-11' };
+    if (normalized.startYear === 2026) return { semStart1:'2026-08-31', semStart2:'2027-02-11' };
+    return {
+        semStart1:normalized.startYear + '-09-01',
+        semStart2:(normalized.startYear + 1) + '-02-01'
+    };
 }
 function dateInAcademicYear(dateStr, schoolYearValue) {
     if (!isValidIsoDate(dateStr)) return false;
@@ -6695,6 +7258,13 @@ function today() {
     const d = new Date();
     return toDateStr(d.getFullYear(), d.getMonth(), d.getDate());
 }
+function shiftLocalDate(dateStr, amount) {
+    if (!isValidIsoDate(dateStr)) return dateStr || today();
+    var parts = dateStr.split('-').map(Number);
+    // 正午可避開午夜附近的時區／夏令時間跳動；輸出永遠取本地年月日。
+    var d = new Date(parts[0], parts[1] - 1, parts[2] + Number(amount || 0), 12, 0, 0);
+    return toDateStr(d.getFullYear(), d.getMonth(), d.getDate());
+}
 function daysInMonth(y, m) { return new Date(y, m + 1, 0).getDate(); }
 function firstWeekday(y, m) { return new Date(y, m, 1).getDay(); }
 // ── Mini summary: how many rows have data in a day ───────────────────────────
@@ -7269,7 +7839,7 @@ function ArchiveView({ idbKeys, idbGet, idbSet, groups, schoolYear, className, s
       var pfx = classPrefix();
       if (!pfx) throw new Error('尚未設定班級');
       var result = await cleanupRemoteArchiveHistory('yearArchive:' + pfx.replace(/:$/, ''));
-      alert('✅ 清理完成：保留 ' + result.kept + ' 份，移除 ' + result.deleted + ' 個舊分段');
+      showVenusToast('清理完成：保留 ' + result.kept + ' 份，移除 ' + result.deleted + ' 個舊分段', 'success', 3400);
     } catch(e) { alert('清理未完成：' + String(e && e.message || e)); }
     setCleaningArchives(false);
   }
@@ -7408,7 +7978,7 @@ function ArchiveView({ idbKeys, idbGet, idbSet, groups, schoolYear, className, s
       }
       setArchiveMeta({ archivedAt:snapshot.archivedAt, source:source });
       setArchiving(false);
-      alert('✅ 完整封存完成\n' + snapshot.stats.totalDays + ' 天、' + snapshot.stats.weeklyPlans + ' 份週計畫、' + snapshot.stats.guidanceRecords + ' 筆輔導紀錄\n儲存於：' + source);
+      showVenusToast('完整封存完成\n' + snapshot.stats.totalDays + ' 天、' + snapshot.stats.weeklyPlans + ' 份週計畫、' + snapshot.stats.guidanceRecords + ' 筆輔導紀錄\n儲存於：' + source, 'success', 4600);
     } catch(e) {
       setArchiving(false);
       alert('封存失敗：' + (e && e.message || e));
@@ -7434,7 +8004,7 @@ function ArchiveView({ idbKeys, idbGet, idbSet, groups, schoolYear, className, s
       var url = URL.createObjectURL(blob);
       var a = document.createElement('a');
       a.href = url;
-      a.download = 'LIMU-backup-' + snapshot.classKey.replace(/[^a-zA-Z0-9_\-\u4e00-\u9fff]/g, '_') + '-' + new Date().toISOString().slice(0,10) + (encrypted ? '-encrypted' : '') + '.json';
+      a.download = 'LIMU-backup-' + snapshot.classKey.replace(/[^a-zA-Z0-9_\-\u4e00-\u9fff]/g, '_') + '-' + today() + (encrypted ? '-encrypted' : '') + '.json';
       document.body.appendChild(a); a.click(); a.remove();
       setTimeout(function(){ URL.revokeObjectURL(url); }, 5000);
       try { _sl.set('hw5ren:lastBackupEpoch', String(Date.now())); } catch(exB) {}
@@ -7464,7 +8034,7 @@ function ArchiveView({ idbKeys, idbGet, idbSet, groups, schoolYear, className, s
       await idbSet('yearArchive:' + (snapshot.classKey || currentClassKey()), JSON.stringify(localPackage));
       await refreshStorageInfo();
       setRestoring(false);
-      alert('✅ 匯入完成：每日 ' + result.added + ' 筆、週計畫 ' + result.plans + ' 份、輔導 ' + result.guidance + ' 筆');
+      showVenusToast('匯入完成：每日 ' + result.added + ' 筆、週計畫 ' + result.plans + ' 份、輔導 ' + result.guidance + ' 筆', 'success', 3800);
       window.location.reload();
     } catch(e) {
       setRestoring(false);
@@ -7490,7 +8060,7 @@ function ArchiveView({ idbKeys, idbGet, idbSet, groups, schoolYear, className, s
       var overwrite = confirm('是否改用完整覆蓋模式？\n確定＝覆蓋；取消＝維持補漏模式');
       var result = await applyArchiveSnapshot(snapshot, overwrite);
       setRestoring(false);
-      alert('✅ 還原完成：每日新增 ' + result.added + '、跳過 ' + result.skipped + '、週計畫 ' + result.plans + '、輔導 ' + result.guidance);
+      showVenusToast('還原完成：每日新增 ' + result.added + '、跳過 ' + result.skipped + '、週計畫 ' + result.plans + '、輔導 ' + result.guidance, 'success', 4000);
       window.location.reload();
     } catch(e) {
       setRestoring(false);
@@ -7834,6 +8404,7 @@ function SettingsView({ groups, saveGroups, groupVersions, saveGroupVersions, sa
         return nextAcademicSchoolYear(schoolYear);
     }
     var transitionDefaultYear = suggestedTransitionYear();
+    var transitionDefaultDates = schoolYearTransitionDefaults(transitionDefaultYear);
     var [showYearTransition, setShowYearTransition] = React.useState(false);
     var [transitionArchiveReady, setTransitionArchiveReady] = React.useState(false);
     var [transitionChecking, setTransitionChecking] = React.useState(false);
@@ -7844,17 +8415,18 @@ function SettingsView({ groups, saveGroups, groupVersions, saveGroupVersions, sa
         schoolName:schoolName || '',
         className:'',
         classSize:classSize || 40,
-        semStart1:transitionDefaultYear + '-09-01',
-        semStart2:String(parseInt(transitionDefaultYear,10) + 1) + '-02-01',
+        semStart1:transitionDefaultDates.semStart1,
+        semStart2:transitionDefaultDates.semStart2,
         copyGroupNames:true,
         copyOfficerRoles:true,
         calendarText:''
     });
     async function openYearTransitionWizard() {
         var target = suggestedTransitionYear();
+        var targetDates = schoolYearTransitionDefaults(target);
         setTransitionForm(function(prev){ return Object.assign({}, prev, {
             year:target, schoolName:schoolName || '', classSize:classSize || 40,
-            semStart1:target + '-09-01', semStart2:String(parseInt(target,10) + 1) + '-02-01'
+            semStart1:targetDates.semStart1, semStart2:targetDates.semStart2
         }); });
         setShowYearTransition(true); setTransitionChecking(true); setTransitionMsg('');
         try { setTransitionArchiveReady(await checkCurrentArchive()); }
@@ -7865,7 +8437,7 @@ function SettingsView({ groups, saveGroups, groupVersions, saveGroupVersions, sa
         if (transitionBusy) return;
         setTransitionBusy(true); setTransitionMsg('');
         try {
-            var calendar = {};
+            var calendar = builtInSchoolCalendarForYear(transitionForm.year);
             if (String(transitionForm.calendarText || '').trim()) {
                 calendar = JSON.parse(transitionForm.calendarText.trim());
                 if (!calendar || typeof calendar !== 'object' || Array.isArray(calendar)) throw new Error('行事曆必須是 JSON 物件');
@@ -7881,7 +8453,7 @@ function SettingsView({ groups, saveGroups, groupVersions, saveGroupVersions, sa
                 return;
             }
             setTransitionBusy(false); setShowYearTransition(false);
-            alert('✅ 已建立 ' + result.rocYear + ' 學年度新班級\n學生座號與幹部人選未沿用，請重新指派。');
+            showVenusToast('已建立 ' + result.rocYear + ' 學年度新班級\n學生座號與幹部人選未沿用，請重新指派。', 'success', 4200);
             onClose();
         } catch(e) {
             setTransitionMsg('❌ ' + String((e && e.message) || e));
@@ -7895,18 +8467,18 @@ function SettingsView({ groups, saveGroups, groupVersions, saveGroupVersions, sa
         var added = addClass({ year: normalized.westernYear, school: newSchool.trim(), className: newClass.trim() });
         if (added && added.duplicate) {
             setShowAddClass(false);
-            alert("ℹ️ 相同學年度與班級已存在，已切換到原有班級。");
+            showVenusToast("相同學年度與班級已存在，已切換到原有班級。", 'info', 3200);
             return;
         }
         setShowAddClass(false);
         setNewYear(academicYearForDate(today()));
         setNewSchool(""); setNewGrade(""); setNewClassCore("");
         setPendingGroupTab(true);
-        alert("✅ 班級已新增並切換！");
+        showVenusToast("班級已新增並切換！", 'success');
     }
     // ── 組別版本系統 state ──
     var sortedVersions = (groupVersions||[]).slice().sort(function(a,b){ return b.effectiveDate.localeCompare(a.effectiveDate); });
-    var todayStr = new Date().toISOString().slice(0,10);
+    var todayStr = today();
     var defaultVer = sortedVersions.find(function(v){ return v.effectiveDate <= todayStr; }) || sortedVersions[sortedVersions.length-1] || { verId:1, effectiveDate:'2000-01-01', groups: groups };
     const [selectedVerId, setSelectedVerId] = useState(defaultVer.verId);
     const [newVerModal, setNewVerModal] = useState(false);
@@ -8532,7 +9104,9 @@ function SettingsView({ groups, saveGroups, groupVersions, saveGroupVersions, sa
                 React.createElement("label", { style:{fontSize:13,fontWeight:700,color:nerv?"#ff8844":"#1e3a5f"} },
                     React.createElement("input", { type:"checkbox", checked:transitionForm.copyOfficerRoles, onChange:function(e){var v=e.target.checked;setTransitionForm(function(p){return Object.assign({},p,{copyOfficerRoles:v});});} }), " 複製幹部職稱（不複製幹部人選）")),
             React.createElement("label", { style:Object.assign({},lbl,{marginTop:14}) }, "新學年度行事曆 JSON（可稍後匯入）"),
-            React.createElement("textarea", { style:Object.assign({},inp,{height:90,resize:"vertical",fontFamily:"monospace"}), value:transitionForm.calendarText, placeholder:'{"2026-09-01":"🏫 開學日"}', onChange:function(e){setTransitionForm(function(p){return Object.assign({},p,{calendarText:e.target.value});});} }),
+            React.createElement("textarea", { style:Object.assign({},inp,{height:90,resize:"vertical",fontFamily:"monospace"}), value:transitionForm.calendarText, placeholder:'{"2026-08-31":"🏫 開學日"}', onChange:function(e){setTransitionForm(function(p){return Object.assign({},p,{calendarText:e.target.value});});} }),
+            React.createElement("p", { style:{fontSize:11,color:nerv?"#c98052":"#7f8ea3",marginTop:6,lineHeight:1.55} },
+                "留白會載入該學年度的內建共同日期；校內評量、運動會等仍請稍後匯入學校公告。"),
             transitionDuplicate && React.createElement("p", { style:{fontSize:12,color:"#c62828",marginTop:10,fontWeight:800,lineHeight:1.5} },
                 "⚠ " + (parseInt(transitionForm.year,10) - 1911) + " 學年度的對應班級已存在（" + (transitionDuplicate.className || "未命名班級") + "），不會重複建立。"),
             transitionMsg && React.createElement("p", { style:{fontSize:12,color:transitionMsg.indexOf("❌")===0?"#e53935":"#e65100",marginTop:10,fontWeight:700} }, transitionMsg),
@@ -8541,6 +9115,25 @@ function SettingsView({ groups, saveGroups, groupVersions, saveGroupVersions, sa
                 React.createElement("button", { type:"button", disabled:transitionBusy||transitionChecking||!transitionArchiveReady||!!transitionDuplicate||!String(transitionForm.className||"").trim()||!transitionForm.semStart1, onClick:submitYearTransition, style:{flex:2,padding:11,border:"none",borderRadius:10,background:(transitionArchiveReady&&!transitionBusy&&!transitionDuplicate)?"#2e7d45":"#aab5ae",color:"#fff",fontWeight:900,cursor:(transitionArchiveReady&&!transitionDuplicate)?"pointer":"not-allowed"} }, transitionBusy?"建立中…":"建立新學年度班級"))
         ))));
 }
+
+// v20.63：設定頁是整個 App 最長的獨立畫面。父層的同步狀態、分鐘更新或
+// 其他面板狀態改變時，只要設定資料本身沒變，就保留現有 DOM 與輸入焦點，
+// 不讓整頁重新建立。函式型 props 只負責操作；其依賴的班級資料改變時，
+// 下列資料 props 也一定會改變並取得最新閉包。
+var MemoSettingsView = React.memo(SettingsView, function(prev, next) {
+    var dataKeys = [
+        'groups','groupVersions','className','schoolName','schoolYear',
+        'semStart1','semStart2','semEnd1','semEnd2','schoolCalendar',
+        'classSize','officers','officerPresets','isNerv','DB_STORE',
+        'classes','firebaseUid'
+    ];
+    for (var i = 0; i < dataKeys.length; i++) {
+        var key = dataKeys[i];
+        if (prev[key] !== next[key]) return false;
+    }
+    return true;
+});
+
 function App() {
     var _a, _b, _c, _d, _e;
     // Render complete marker（mount 後）
@@ -8556,10 +9149,20 @@ function App() {
     }, []);
 
     const [view, setViewRaw] = useState("month");
+    const viewPersistSeqRef = useRef(0);
     function setView(v) {
         try { window._writeLog('step', 'view→' + v); } catch(e) {}
-        try { _sl.set('hw5ren:lastView', v); } catch(e) {}
         setViewRaw(v);
+        // lastView 只是便利狀態，不值得在點擊導覽的同一幀同步寫入儲存空間。
+        // 手勢／慣性捲動結束後再寫，避免 Safari 把這次 I/O 算進觸控回應。
+        var persistSeq = ++viewPersistSeqRef.current;
+        var persist = function() {
+            if (persistSeq !== viewPersistSeqRef.current) return;
+            try { _sl.set('hw5ren:lastView', v); } catch(e) {}
+        };
+        if (window.LIMUInteraction && window.LIMUInteraction.runWhenIdle) {
+            window.LIMUInteraction.runWhenIdle(persist, { timeout:800 });
+        } else setTimeout(persist, 0);
     }
     const [groups, setGroups] = useState(() => {
         var g = loadGroups();
@@ -8604,8 +9207,8 @@ function App() {
         }
         // 同步 groups 為目前生效版本，向下相容既有 40+ 處呼叫點
         var sorted = versions.slice().sort(function(a,b){ return b.effectiveDate.localeCompare(a.effectiveDate); });
-        var today = new Date().toISOString().slice(0,10);
-        var current = sorted.find(function(v){ return v.effectiveDate <= today; }) || sorted[sorted.length-1];
+        var todayKey = today();
+        var current = sorted.find(function(v){ return v.effectiveDate <= todayKey; }) || sorted[sorted.length-1];
         if (current) {
             setGroups(current.groups);
             try { window._fallbackGroups = current.groups; } catch(e) {}
@@ -8653,7 +9256,9 @@ function App() {
             if (!saved) saved = safeGet("hw5ren:schoolCal");
             var resetToBuiltIn = safeGet("hw5ren:resetSchoolCal") === "1";
             var parsedCalendar = saved ? JSON.parse(saved) : null;
-            return parsedCalendar && typeof parsedCalendar === "object" && !Array.isArray(parsedCalendar) && !resetToBuiltIn ? parsedCalendar : {"2025-08-29":"\u958b\u5b78\u6e96\u5099","2025-09-01":"\ud83c\udfeb \u958b\u5b78\u65e5","2025-09-28":"\u6559\u5e2b\u7bc0","2025-09-29":"\ud83d\udd34 \u6559\u5e2b\u7bc0\u88dc\u5047","2025-10-06":"\ud83d\udd34 \u4e2d\u79cb\u7bc0","2025-10-10":"\ud83d\udd34 \u570b\u6176\u65e5","2025-10-24":"\ud83d\udd34 \u5149\u5fa9\u7bc0\u88dc\u5047","2025-10-25":"\u5149\u5fa9\u7bc0","2025-11-06":"\ud83d\udcdd \u7b2c\u4e00\u6b21\u5b9a\u671f\u8a55\u91cf","2025-11-07":"\ud83d\udcdd \u7b2c\u4e00\u6b21\u5b9a\u671f\u8a55\u91cf","2025-11-08":"\u81fa\u7063\u79d1\u5b78\u7bc0","2025-11-22":"\ud83c\udfc3 \u904b\u52d5\u6703","2025-11-24":"\ud83d\udd34 \u904b\u52d5\u6703\u88dc\u5047","2025-12-25":"\ud83d\udd34 \u884c\u618c\u7d00\u5ff5\u65e5","2026-01-01":"\ud83d\udd34 \u958b\u570b\u7d00\u5ff5\u65e5","2026-01-13":"\ud83d\udcdd \u7b2c\u4e8c\u6b21\u5b9a\u671f\u8a55\u91cf","2026-01-14":"\ud83d\udcdd \u7b2c\u4e8c\u6b21\u5b9a\u671f\u8a55\u91cf","2026-01-20":"\ud83c\udfc1 \u7b2c\u4e00\u5b78\u671f\u4f11\u696d\u5f0f","2026-01-21":"\u88dc\u8ab22/11\u88dc","2026-01-22":"\u88dc\u8ab22/12\u88dc","2026-01-23":"\u88dc\u8ab22/13\u88dc","2026-02-10":"\u5bd2\u5047\u7d50\u675f","2026-02-11":"\ud83d\udd34 \u8abf\u6574\u653e\u5047","2026-02-12":"\ud83d\udd34 \u8abf\u6574\u653e\u5047","2026-02-13":"\ud83d\udd34 \u8abf\u6574\u653e\u5047","2026-02-16":"\ud83d\udd34 \u9664\u5915","2026-02-17":"\ud83d\udd34 \u6625\u7bc0","2026-02-18":"\ud83d\udd34 \u6625\u7bc0","2026-02-19":"\ud83d\udd34 \u6625\u7bc0","2026-02-20":"\ud83d\udd34 \u6625\u7bc0","2026-02-23":"\u5be6\u969b\u958b\u59cb\u4e0a\u8ab2","2026-02-27":"\ud83d\udd34 \u548c\u5e73\u7d00\u5ff5\u65e5\u88dc\u5047","2026-02-28":"\u548c\u5e73\u7d00\u5ff5\u65e5","2026-04-03":"\ud83d\udd34 \u5150\u7ae5\u7bc0\u88dc\u5047","2026-04-04":"\u5150\u7ae5\u7bc0","2026-04-05":"\u6e05\u660e\u7bc0","2026-04-06":"\ud83d\udd34 \u6e05\u660e\u7bc0\u88dc\u5047","2026-04-23":"\ud83d\udcdd \u7b2c\u4e00\u6b21\u5b9a\u671f\u8a55\u91cf","2026-04-24":"\ud83d\udcdd \u7b2c\u4e00\u6b21\u5b9a\u671f\u8a55\u91cf","2026-05-01":"\ud83d\udd34 \u52de\u52d5\u65e5","2026-06-02":"\ud83d\udcdd \u516d\u5e74\u7d1a\u7562\u696d\u8a55\u91cf","2026-06-03":"\ud83d\udcdd \u516d\u5e74\u7d1a\u7562\u696d\u8a55\u91cf","2026-06-11":"\ud83c\udf93 \u7562\u696d\u5178\u79ae","2026-06-19":"\ud83d\udd34 \u7aef\u5348\u7bc0","2026-06-23":"\ud83d\udcdd \u7b2c\u4e8c\u6b21\u5b9a\u671f\u8a55\u91cf","2026-06-24":"\ud83d\udcdd \u7b2c\u4e8c\u6b21\u5b9a\u671f\u8a55\u91cf","2026-06-30":"\ud83c\udfc1 \u4f11\u696d\u5f0f","2026-07-01":"\u2600\ufe0f \u6691\u5047\u958b\u59cb"};
+            if (parsedCalendar && typeof parsedCalendar === "object" && !Array.isArray(parsedCalendar) && !resetToBuiltIn) return parsedCalendar;
+            var calendarYear = safeGet("hw5ren:year") || academicYearForDate(today());
+            return builtInSchoolCalendarForYear(calendarYear);
         } catch(e) { return {}; }
     });
     const schoolCalendarInfo = React.useMemo(function(){ return calendarProfileInfo(schoolCalendar); }, [schoolCalendar]);
@@ -8865,7 +9470,7 @@ function App() {
             if (groupCid === (_sl.get('hw5ren:activeClass') || activeClassId)) {
                 setGroupVersions(versions);
                 var sorted = versions.slice().sort(function(a,b){ return String(b.effectiveDate || '').localeCompare(String(a.effectiveDate || '')); });
-                var todayKey = new Date().toISOString().slice(0,10);
+                var todayKey = today();
                 var current = sorted.find(function(v){ return v.effectiveDate <= todayKey; }) || sorted[sorted.length-1];
                 if (current && Array.isArray(current.groups)) { setGroups(current.groups); _sl.set('hw5ren:groups', JSON.stringify(current.groups)); }
             }
@@ -9007,6 +9612,7 @@ function App() {
 
     // 切換班級
     function switchClass(cls) {
+        var previousActiveClassId = _sl.get("hw5ren:activeClass") || activeClassId || '';
         setActiveClassId(cls.id);
         _sl.set("hw5ren:activeClass", cls.id);
         setClassName(cls.className);
@@ -9021,13 +9627,18 @@ function App() {
         setSemEnd1(cls.semEnd1 || ''); _sl.set('hw5ren:semEnd1', cls.semEnd1 || '');
         setSemEnd2(cls.semEnd2 || ''); _sl.set('hw5ren:semEnd2', cls.semEnd2 || '');
         try {
-            var classCalRaw = _sl.get('hw5ren:schoolCal:' + cls.id) || _sl.get('hw5ren:schoolCal');
-            var classCal = classCalRaw ? JSON.parse(classCalRaw) : {};
+            var classCalRaw = _sl.get('hw5ren:schoolCal:' + cls.id);
+            // 全域舊鍵只屬於切換前的班級，不能讓新班級誤繼承上一學年度行事曆。
+            // 若目前班級本來就只有舊鍵，仍保留一次向下相容；其餘班級載入各自
+            // 學年度的內建共同日期（目前提供 114、115 學年度）。
+            if (!classCalRaw && previousActiveClassId === cls.id) classCalRaw = _sl.get('hw5ren:schoolCal');
+            var classCal = classCalRaw ? JSON.parse(classCalRaw) : builtInSchoolCalendarForYear(cls.year);
             if (classCal && typeof classCal === 'object' && !Array.isArray(classCal)) {
                 setSchoolCalendar(classCal);
+                _sl.set('hw5ren:schoolCal:' + cls.id, JSON.stringify(classCal));
                 _sl.set('hw5ren:schoolCal', JSON.stringify(classCal));
             }
-        } catch(exCal) { setSchoolCalendar({}); }
+        } catch(exCal) { setSchoolCalendar(builtInSchoolCalendarForYear(cls.year)); }
         try {
             var classEventRaw = _sl.get('hw5ren:schoolEvents:' + cls.id) || '{}';
             var nextClassEvents = normalizeSchoolEventStore(JSON.parse(classEventRaw));
@@ -9424,7 +10035,7 @@ function App() {
     }
     // 同步 groups 到 window（供頂層函數使用）
     React.useEffect(function() { try { window._fallbackGroups = groups; } catch(e) {} }, [groups]);
-    const _liveGroups = withRosterGroups((groups && groups.some(function(g){ return g.members && g.members.length > 0; })) ? groups : ((typeof getGroupsForDate === 'function' ? getGroupsForDate(new Date().toISOString().slice(0,10)) : null) || []));
+    const _liveGroups = withRosterGroups((groups && groups.some(function(g){ return g.members && g.members.length > 0; })) ? groups : ((typeof getGroupsForDate === 'function' ? getGroupsForDate(today()) : null) || []));
     const _groupedMembers = Array.from(new Set(_liveGroups.reduce(function(acc,g){return acc.concat(g.members||[]);}, []))).sort(function(a,b){return a-b;});
     const GR_SEATS = (classSize > 0 ? Array.from({length: classSize}, function(_, i) { return i + 1; }) : _groupedMembers);
     const ALL_MEMBERS = GR_SEATS;
@@ -9497,7 +10108,7 @@ function App() {
     const [analysisData, setAnalysisData] = useState(null);
     const [analysisLoading, setAnalysisLoading] = useState(false);
     const [analysisFallback, setAnalysisFallback] = useState('');
-    const [grDateSel, setGrDateSel] = useState(function() { return new Date().toISOString().slice(0,10); });
+    const [grDateSel, setGrDateSel] = useState(function() { return today(); });
     // 功能3：周次打包
     const [grWeekSel, setGrWeekSel] = useState([]);
     const [grCopyMsg, setGrCopyMsg] = useState('');
@@ -9601,6 +10212,22 @@ function App() {
     const [theme, setTheme] = useState(() => safeGet("hw5ren:theme") || "default");
     const [showThemeMenu, setShowThemeMenu] = useState(false);
     const [showGearMenu, setShowGearMenu] = useState(false);
+    const gearNavigationSeqRef = useRef(0);
+    function openViewAfterGear(nextView) {
+        var seq = ++gearNavigationSeqRef.current;
+        setShowGearMenu(false);
+        // 先讓功能面板完成一個畫面週期：解除 body fixed、還原舊頁位置，
+        // 再掛上新的長頁。這可避免 Safari 把舊頁的 scroll anchoring 帶進
+        // 班級設定，造成第一次從分頁按鈕起滑時被拉回。
+        var commit = function() {
+            if (seq !== gearNavigationSeqRef.current) return;
+            try { window.scrollTo(0, 0); } catch(e) {}
+            setView(nextView);
+        };
+        if (typeof requestAnimationFrame === 'function') {
+            requestAnimationFrame(function() { requestAnimationFrame(commit); });
+        } else setTimeout(commit, 32);
+    }
     const [showCalImport, setShowCalImport] = useState(function(){ return !!readUpdateDraftValue('calImportText', ''); });
     const [calImportText, setCalImportText] = useState(function(){ return readUpdateDraftValue('calImportText', ''); });
     const [schoolWebsiteInput, setSchoolWebsiteInput] = useState(function(){
@@ -9653,6 +10280,7 @@ function App() {
     const EMPTY_ORNAMENT = window.LIMU_ART && window.LIMU_ART.emptyOrnament
         ? window.LIMU_ART.emptyOrnament
         : "";
+    const NEBULA_EMPTY_ORNAMENT = "./assets/nebula-empty-v20-62.svg";
     // v20.9：四個主題各自的向量圖示（純 inline SVG，不增加任何檔案體積）。
     function renderThemeGlyph(id, compact) {
         var size = compact ? 22 : 26;
@@ -9694,6 +10322,109 @@ function App() {
             )
         );
     }
+    // v20.62：主要導覽共用同一套 24px／2px 線性 SVG。
+    // 不再交由各作業系統自行繪製 emoji，避免 iPhone／Android 風格與尺寸不同。
+    function renderUiIcon(name, extraClass) {
+        var props = {
+            className:"venus-ui-icon" + (extraClass ? " " + extraClass : ""),
+            viewBox:"0 0 24 24", fill:"none", stroke:"currentColor",
+            strokeWidth:"2", strokeLinecap:"round", strokeLinejoin:"round",
+            "aria-hidden":"true", focusable:"false"
+        };
+        if (name === "calendar") {
+            return React.createElement("svg", props,
+                React.createElement("rect", { x:"3", y:"4.5", width:"18", height:"16.5", rx:"3" }),
+                React.createElement("path", { d:"M8 2.5v4M16 2.5v4M3 9h18" }),
+                React.createElement("path", { d:"M7.5 13h3M13.5 13h3M7.5 17h3" })
+            );
+        }
+        if (name === "home") {
+            return React.createElement("svg", props,
+                React.createElement("path", { d:"m3 10.8 9-7.3 9 7.3" }),
+                React.createElement("path", { d:"M5.5 9.8V21h13V9.8M9.5 21v-6.5h5V21" })
+            );
+        }
+        if (name === "search") {
+            return React.createElement("svg", props,
+                React.createElement("circle", { cx:"10.8", cy:"10.8", r:"6.8" }),
+                React.createElement("path", { d:"m16 16 5 5" })
+            );
+        }
+        if (name === "clipboard") {
+            return React.createElement("svg", props,
+                React.createElement("rect", { x:"5", y:"4", width:"14", height:"17", rx:"2.5" }),
+                React.createElement("path", { d:"M9 4.5V3h6v1.5M8.5 9.5h7M8.5 13.5h7M8.5 17.5h4.5" })
+            );
+        }
+        if (name === "settings") {
+            return React.createElement("svg", props,
+                React.createElement("path", { d:"M4 6h16M4 12h16M4 18h16" }),
+                React.createElement("circle", { cx:"8", cy:"6", r:"2", fill:"currentColor", stroke:"none" }),
+                React.createElement("circle", { cx:"16", cy:"12", r:"2", fill:"currentColor", stroke:"none" }),
+                React.createElement("circle", { cx:"10", cy:"18", r:"2", fill:"currentColor", stroke:"none" })
+            );
+        }
+        if (name === "archive") {
+            return React.createElement("svg", props,
+                React.createElement("path", { d:"M4.5 7.5h15v12.5h-15zM3.5 4h17v3.5h-17z" }),
+                React.createElement("path", { d:"M9.5 11.5h5" })
+            );
+        }
+        if (name === "sync") {
+            return React.createElement("svg", props,
+                React.createElement("path", { d:"M20 7.5A8 8 0 0 0 6.4 5.7L4 8" }),
+                React.createElement("path", { d:"M4 4v4h4" }),
+                React.createElement("path", { d:"M4 16.5a8 8 0 0 0 13.6 1.8L20 16" }),
+                React.createElement("path", { d:"M20 20v-4h-4" })
+            );
+        }
+        if (name === "activity") {
+            return React.createElement("svg", props,
+                React.createElement("path", { d:"M3 12h4l2.2-5.5 4.1 11 2.2-5.5H21" })
+            );
+        }
+        if (name === "card") {
+            return React.createElement("svg", props,
+                React.createElement("rect", { x:"3", y:"5", width:"18", height:"14", rx:"3" }),
+                React.createElement("path", { d:"M3 9h18M7 14h4" })
+            );
+        }
+        if (name === "upload") {
+            return React.createElement("svg", props,
+                React.createElement("path", { d:"M12 15V4M8 8l4-4 4 4" }),
+                React.createElement("path", { d:"M5 13v6h14v-6" })
+            );
+        }
+        if (name === "user") {
+            return React.createElement("svg", props,
+                React.createElement("circle", { cx:"12", cy:"8", r:"3.5" }),
+                React.createElement("path", { d:"M5 20c.8-4 3.2-6 7-6s6.2 2 7 6" })
+            );
+        }
+        if (name === "device") {
+            return React.createElement("svg", props,
+                React.createElement("rect", { x:"6.5", y:"2.5", width:"11", height:"19", rx:"2.5" }),
+                React.createElement("path", { d:"M10 18.5h4" })
+            );
+        }
+        if (name === "locator") {
+            return React.createElement("svg", props,
+                React.createElement("circle", { cx:"12", cy:"12", r:"4" }),
+                React.createElement("path", { d:"M12 2v4M12 18v4M2 12h4M18 12h4" })
+            );
+        }
+        if (name === "warning") {
+            return React.createElement("svg", props,
+                React.createElement("path", { d:"M12 3 2.8 20h18.4L12 3Z" }),
+                React.createElement("path", { d:"M12 9v4M12 17h.01" })
+            );
+        }
+        return React.createElement("svg", Object.assign({}, props, { stroke:"none", fill:"currentColor" }),
+            React.createElement("circle", { cx:"5", cy:"12", r:"1.8" }),
+            React.createElement("circle", { cx:"12", cy:"12", r:"1.8" }),
+            React.createElement("circle", { cx:"19", cy:"12", r:"1.8" })
+        );
+    }
     function renderThemeIcon(id, compact) {
         if (id === "mucha") return renderSignatureIrisIcon(compact);
         return React.createElement("span", { className:"theme-glyph-slot" + (compact ? " compact" : ""), "aria-hidden":"true" },
@@ -9729,21 +10460,22 @@ function App() {
         );
     }
     const THEMES = [
-        { id: 'default', icon: '☀️', name: '一般模式', desc: '清爽藍白配色' },
-        { id: 'nebula', icon: '🌌', name: '星雲模式', desc: '天馬座星雲・深邃宇宙' },
-        { id: 'nerv', icon: '⬡', name: 'NERV模式', desc: '新世紀福音戰士' },
-        { id: 'mucha', icon: '❧', image: SIGNATURE_IRIS_FILE, name: '慕夏・藍紫鳶尾', desc: '你的代表花・智慧、信念與勇氣' },
-        { id: 'odyssey', icon: '🧭', name: '奧德賽・遠征', desc: '暴風海、青銅、航海圖與史詩歸途' },
+        { id: 'default', name: '一般模式', desc: '清爽藍白配色' },
+        { id: 'nebula', name: '星雲模式', desc: '靜態星圖・深邃宇宙' },
+        { id: 'nerv', name: 'NERV模式', desc: '新世紀福音戰士' },
+        { id: 'mucha', image: SIGNATURE_IRIS_FILE, name: '慕夏・藍紫鳶尾', desc: '你的代表花・智慧、信念與勇氣' },
+        { id: 'odyssey', name: '奧德賽・遠征', desc: '暴風海、青銅、航海圖與史詩歸途' },
     ];
     const isNerv = theme === "nerv";
     const isNebula = theme === "nebula";
     const isMucha = theme === "mucha";
     const isOdyssey = theme === "odyssey";
     function renderMuchaEmpty(text, className) {
-        var showArt = (isMucha || isNebula) && !!EMPTY_ORNAMENT;
+        var emptyArt = isNebula ? NEBULA_EMPTY_ORNAMENT : EMPTY_ORNAMENT;
+        var showArt = (isMucha || isNebula) && !!emptyArt;
         return React.createElement("div", { className:(className || "no-data") + " mucha-empty-state" },
             showArt && React.createElement("img", {
-                className:"mucha-empty-art", src:EMPTY_ORNAMENT, alt:"", draggable:false
+                className:"mucha-empty-art", src:emptyArt, alt:"", draggable:false
             }),
             React.createElement("span", null, text)
         );
@@ -10551,7 +11283,7 @@ function App() {
                     if (ok) deleted++;
                 } catch(exDel) { /* 單筆刪除失敗，跳過不中斷 */ }
             }
-            alert('✅ 已清理 ' + deleted + ' 筆');
+            showVenusToast('已清理 ' + deleted + ' 筆', 'success');
         } catch(exAll) {
             alert('清理失敗：' + String((exAll && exAll.message) || exAll));
         }
@@ -10573,7 +11305,7 @@ function App() {
                 } catch(exStamp) { /* 單筆補戳章失敗，跳過不中斷 */ }
             }
             await grLoad();
-            alert('✅ 已歸檔 ' + done + ' 筆');
+            showVenusToast('已歸檔 ' + done + ' 筆', 'success');
         } catch(exAllStamp) {
             alert('歸檔失敗：' + String((exAllStamp && exAllStamp.message) || exAllStamp));
         }
@@ -11729,6 +12461,7 @@ function App() {
         var themeMeta = document.querySelector('meta[name="theme-color"]');
         var prevThemeColor = themeMeta ? themeMeta.getAttribute('content') : null;
         var bgTimers = [];
+        var bgFrame = null;
         var bgApplied = false;
 
         function syncCanvasBg() {
@@ -11757,10 +12490,16 @@ function App() {
             return false;
         }
 
-        syncCanvasBg();
-        try { bgTimers.push(requestAnimationFrame(function(){ syncCanvasBg(); })); } catch(e) {}
-        bgTimers.push(setTimeout(syncCanvasBg, 150));
-        bgTimers.push(setTimeout(syncCanvasBg, 500));
+        // 正常情況 effect 執行時面板已在 DOM；第一次成功就停止，不再於
+        // 150／500ms 重複讀取所有面板的 layout。只有尚未取得底色時才重試。
+        if (!syncCanvasBg()) {
+            try {
+                bgFrame = requestAnimationFrame(function() {
+                    bgFrame = null;
+                    if (!syncCanvasBg()) bgTimers.push(setTimeout(syncCanvasBg, 180));
+                });
+            } catch(e) { bgTimers.push(setTimeout(syncCanvasBg, 60)); }
+        }
 
         return function() {
             body.classList.remove('v18-modal-open');
@@ -11770,6 +12509,9 @@ function App() {
             body.style.overflow = previous.overflow;
             root.style.overscrollBehavior = previous.rootOverscroll;
             bgTimers.forEach(function(t){ try { clearTimeout(t); } catch(e) {} });
+            if (bgFrame !== null && typeof cancelAnimationFrame === 'function') {
+                try { cancelAnimationFrame(bgFrame); } catch(e) {}
+            }
             if (bgApplied) {
                 root.style.background = prevRootBg;
                 body.style.background = prevBodyBg;
@@ -12355,7 +13097,7 @@ function App() {
             if (syncResult.conflicts > 0) {
                 alert('⚠️ 週計畫與另一台裝置的版本不同，兩份資料都已保留，請到「同步衝突」處理');
             } else if (!firebaseUid || !navigator.onLine || syncResult.failed > 0) {
-                alert('✅ 週計畫已儲存在此裝置，恢復網路並登入後會自動同步');
+                showVenusToast('週計畫已儲存在此裝置，恢復網路並登入後會自動同步', 'success', 3600);
             }
         } catch(e) { alert('儲存錯誤：' + String(e.message || e)); }
         setWpSaving(false);
@@ -12373,7 +13115,7 @@ function App() {
             if (syncResult.conflicts > 0) {
                 alert('⚠️ 此週與另一台裝置的版本不同，兩份都已保留，請到「同步衝突」處理');
             } else if (!firebaseUid || !navigator.onLine || syncResult.failed > 0) {
-                alert('✅ 已儲存在此裝置，恢復網路並登入後會自動同步');
+                showVenusToast('已儲存在此裝置，恢復網路並登入後會自動同步', 'success', 3400);
             }
         } catch(e) { alert('儲存錯誤：' + String(e.message || e)); }
         setWpSavingWeek('');
@@ -12747,7 +13489,8 @@ function App() {
 
     var localOnlyMode = !authed && (forceLocalMode || isOffline || typeof firebase === 'undefined' || !firebase.auth);
     if (!authed && !localOnlyMode) {
-        var _LOGIN_BG = "./assets/login-background.jpg";
+        // v20.62：登入與開場共用同一張電影寫實世界觀，避免切到插畫風後產生落差。
+        var _LOGIN_BG = "./assets/splash-art.jpg";
         return (React.createElement("div", { className: "app", "data-theme": theme, style: { minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: isNerv ? "#050200" : "linear-gradient(160deg,#0d1f3c,#1a3a6e)", padding: "calc(40px + var(--safe-top)) 24px max(40px,var(--safe-bottom)) 24px", position: "relative", overflow: "hidden", zIndex: 10, boxSizing: "border-box" } },
             !isNerv && React.createElement("img", {
                 src: _LOGIN_BG, alt: "", draggable: false,
@@ -12760,7 +13503,7 @@ function App() {
                     maskImage: "linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,.8) 60%, rgba(0,0,0,0) 92%)"
                 }
             }),
-            React.createElement("div", { style: { fontSize: 64, marginBottom: 16 } }, isNerv ? "⬡" : "📋"),
+            React.createElement("div", { style: { width:64, height:64, marginBottom:16, display:"flex", alignItems:"center", justifyContent:"center", color:isNerv ? "#ff6600" : "#fff" } }, isNerv ? "⬡" : renderUiIcon("clipboard", "login-mark-icon")),
             React.createElement("h1", { style: { fontSize: 28, fontWeight: 700, color: isNerv ? "#ff6600" : "#fff", letterSpacing: 6, marginBottom: 8, textAlign: "center", fontFamily: isNerv ? "Share Tech Mono,monospace" : "'Cinzel Decorative', serif", textShadow: isNerv ? "0 0 20px rgba(255,102,0,.8)" : "0 2px 20px rgba(255,255,255,.2)" } }, isNerv ? "NERV" : "LIMU"),
             React.createElement("p", { style: { fontSize: 14, color: isNerv ? "rgba(255,102,0,.6)" : "rgba(255,255,255,.7)", marginBottom: 32, letterSpacing: isNerv ? 3 : 0, fontFamily: isNerv ? "Share Tech Mono,monospace" : "inherit" } }, isNerv ? "▸ MAGI SYSTEM AUTHORIZED ◂" : "登入後可設定班級資訊"),
             React.createElement("button", { onClick: () => {
@@ -12873,14 +13616,14 @@ function App() {
                     }, isNerv ? "NERV" : "LIMU"),
                     React.createElement("span", { style:{ fontSize:11, fontWeight:600, color: isNerv ? "rgba(255,102,0,.75)" : "rgba(255,255,255,.5)", marginLeft:8, alignSelf:"center", letterSpacing:0, whiteSpace:"nowrap" } }, "v" + APP_VERSION),
                     React.createElement("div", { className:"hi-flourish", "aria-hidden":"true" }),
-                    React.createElement("button", { className:"theme-btn header-quick-btn", onClick:openTodayWorkspace, title:"今日工作台", 'aria-label':"開啟今日工作台", style:{fontSize:14,width:32,height:32,padding:0,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(255,193,7,.24)"} }, isNerv ? "TOD" : "🏠"),
-                    React.createElement("button", { className:"theme-btn header-quick-btn", onClick:function(){setShowGlobalSearch(true);}, title:"全域搜尋", 'aria-label':"開啟全域搜尋", style:{fontSize:14,width:32,height:32,padding:0,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(126,87,194,.28)"} }, isNerv ? "SRC" : "🔎"),
+                    React.createElement("button", { className:"theme-btn header-quick-btn", onClick:openTodayWorkspace, title:"今日工作台", 'aria-label':"開啟今日工作台", style:{fontSize:14,width:32,height:32,padding:0,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(255,193,7,.24)"} }, renderUiIcon("home", "header-icon")),
+                    React.createElement("button", { className:"theme-btn header-quick-btn", onClick:function(){setShowGlobalSearch(true);}, title:"全域搜尋", 'aria-label':"開啟全域搜尋", style:{fontSize:14,width:32,height:32,padding:0,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(126,87,194,.28)"} }, renderUiIcon("search", "header-icon")),
                     // 輔導紀錄
-                    React.createElement("button", { className: "theme-btn header-quick-btn", onClick: function() { setGrCenter(true); setGrTab('recent'); setGrFilter('7'); setGrSearch(''); }, title: "輔導紀錄中心", 'aria-label':"開啟輔導紀錄中心", style: { background: grRecords.length > 0 ? "rgba(156,39,176,.35)" : "rgba(255,255,255,.15)", fontSize: 14, width: 32, height: 32, padding: 0, display: "flex", alignItems: "center", justifyContent: "center" } }, isNerv ? "▣" : "📋"),
+                    React.createElement("button", { className: "theme-btn header-quick-btn", onClick: function() { setGrCenter(true); setGrTab('recent'); setGrFilter('7'); setGrSearch(''); }, title: "輔導紀錄中心", 'aria-label':"開啟輔導紀錄中心", style: { background: grRecords.length > 0 ? "rgba(156,39,176,.35)" : "rgba(255,255,255,.15)", fontSize: 14, width: 32, height: 32, padding: 0, display: "flex", alignItems: "center", justifyContent: "center" } }, renderUiIcon("clipboard", "header-icon")),
                     // 主題切換
                     React.createElement("button", { className: "theme-btn", onClick: handleThemeToggle, 'aria-label':"切換顯示主題", style: { background: theme === 'nerv' ? 'rgba(255,102,0,.2)' : theme === 'nebula' ? 'rgba(150,100,255,.2)' : theme === 'mucha' ? 'rgba(210,179,109,.22)' : 'rgba(255,255,255,.15)', fontSize: 14, width: 32, height: 32, padding: 0, display: "flex", alignItems: "center", justifyContent: "center" } }, renderThemeIcon(theme, true)),
                     // 齒輪選單
-                    React.createElement("button", { className: "theme-btn", onClick: function() { setShowGearMenu(true); }, title: "選單", 'aria-label':"開啟功能選單", style: { fontSize: 14, width: 32, height: 32, padding: 0, display: "flex", alignItems: "center", justifyContent: "center" } }, "⚙️")
+                    React.createElement("button", { className: "theme-btn", onClick: function() { setShowGearMenu(true); }, title: "選單", 'aria-label':"開啟功能選單", style: { fontSize: 14, width: 32, height: 32, padding: 0, display: "flex", alignItems: "center", justifyContent: "center" } }, renderUiIcon("settings", "header-icon"))
                 ),
                 React.createElement("div", { className: "hi-row2" },
                     React.createElement("div", { className: "class-switcher" },
@@ -12936,7 +13679,7 @@ function App() {
                         },
                         'aria-label':"展開班級定位詳細資訊"
                     },
-                        React.createElement("span", { className:"class-context-pin", 'aria-hidden':"true" }, "⌖"),
+                        React.createElement("span", { className:"class-context-pin", 'aria-hidden':"true" }, renderUiIcon("locator")),
                         React.createElement("span", { className:"class-context-copy" },
                             React.createElement("span", { className:"class-context-title" }, locatorClassTitle),
                             React.createElement("span", { className:"class-context-meta" },
@@ -13833,18 +14576,14 @@ function App() {
                             HW_TYPES.map(function(t) {
                                 return React.createElement("button", {
                                     key:t.key,
+                                    className:"hw-touch-feedback",
                                     style:{
                                         padding:"11px 4px", borderRadius:10,
                                         border:"1.5px solid "+t.color+"66",
                                         background:t.bg, color:t.color,
                                         fontSize:13, fontWeight:700, cursor:"pointer",
-                                        WebkitTapHighlightColor:"rgba(255,220,0,.5)",
-                                        transition:"filter .1s"
+                                        WebkitTapHighlightColor:"transparent"
                                     },
-                                    onTouchStart: function(e){ e.currentTarget.style.filter="brightness(1.8) drop-shadow(0 0 6px #ffd700)"; },
-                                    onTouchEnd:   function(e){ e.currentTarget.style.filter=""; },
-                                    onMouseDown:  function(e){ e.currentTarget.style.filter="brightness(1.8) drop-shadow(0 0 6px #ffd700)"; },
-                                    onMouseUp:    function(e){ e.currentTarget.style.filter=""; },
                                     onClick: function(){
                                         setHwPickerType(t.key);
                                         setHwPickerLessons(new Set());
@@ -13863,18 +14602,14 @@ function App() {
                                 recentHWNames.slice(0,10).map(function(hw){
                                     return React.createElement("button", {
                                         key:"recent-"+hw,
+                                        className:"hw-touch-feedback",
                                         style:{
                                             padding:"7px 13px", borderRadius:20,
                                             border:"1.5px solid rgba(255,215,0,.4)",
                                             background:"rgba(255,215,0,.1)", color:"#ffd700",
                                             fontSize:13, cursor:"pointer",
-                                            WebkitTapHighlightColor:"rgba(255,220,0,.5)",
-                                            transition:"filter .1s"
+                                            WebkitTapHighlightColor:"transparent"
                                         },
-                                        onTouchStart: function(e){ e.currentTarget.style.filter="brightness(1.8) drop-shadow(0 0 6px #ffd700)"; },
-                                        onTouchEnd:   function(e){ e.currentTarget.style.filter=""; },
-                                        onMouseDown:  function(e){ e.currentTarget.style.filter="brightness(1.8) drop-shadow(0 0 6px #ffd700)"; },
-                                        onMouseUp:    function(e){ e.currentTarget.style.filter=""; },
                                         onClick: function(){
                                             addToCustomHW(hw); addToRecentHW(hw);
                                             if (hwPickerWpDay) {
@@ -13901,18 +14636,14 @@ function App() {
                             ["聯絡簿","小日記","小作文","作文段落","作文","回條"].map(function(hw){
                                 return React.createElement("button", {
                                     key:hw,
+                                    className:"hw-touch-feedback",
                                     style:{
                                         padding:"7px 13px", borderRadius:20,
                                         border:"1px solid rgba(255,255,255,.18)",
                                         background:"rgba(255,255,255,.07)", color:"rgba(255,255,255,.8)",
                                         fontSize:13, cursor:"pointer",
-                                        WebkitTapHighlightColor:"rgba(255,220,0,.5)",
-                                        transition:"filter .1s"
+                                        WebkitTapHighlightColor:"transparent"
                                     },
-                                    onTouchStart: function(e){ e.currentTarget.style.filter="brightness(1.8) drop-shadow(0 0 6px #ffd700)"; },
-                                    onTouchEnd:   function(e){ e.currentTarget.style.filter=""; },
-                                    onMouseDown:  function(e){ e.currentTarget.style.filter="brightness(1.8) drop-shadow(0 0 6px #ffd700)"; },
-                                    onMouseUp:    function(e){ e.currentTarget.style.filter=""; },
                                     onClick: function(){
                                         addToCustomHW(hw); addToRecentHW(hw);
                                                                                 if (hwPickerWpDay) {
@@ -13934,18 +14665,15 @@ function App() {
                             })
                         ),
                         React.createElement("button", {
+                            className:"hw-touch-feedback",
                             style:{
                                 width:"100%", marginBottom:12, padding:"10px",
                                 background:hwPickerReminderMode?"rgba(230,126,34,.3)":"rgba(255,255,255,.05)",
                                 border:hwPickerReminderMode?"1.5px solid #e67e22":"1px solid rgba(255,255,255,.12)",
                                 color:hwPickerReminderMode?"#ffcc80":"rgba(255,255,255,.6)",
                                 borderRadius:10, fontSize:13, fontWeight:700, cursor:"pointer",
-                                WebkitTapHighlightColor:"rgba(255,220,0,.5)", transition:"filter .1s"
+                                WebkitTapHighlightColor:"transparent"
                             },
-                            onTouchStart: function(e){ e.currentTarget.style.filter="brightness(1.8) drop-shadow(0 0 6px #ffd700)"; },
-                            onTouchEnd:   function(e){ e.currentTarget.style.filter=""; },
-                            onMouseDown:  function(e){ e.currentTarget.style.filter="brightness(1.8) drop-shadow(0 0 6px #ffd700)"; },
-                            onMouseUp:    function(e){ e.currentTarget.style.filter=""; },
                             onClick: function(){ setHwPickerReminderMode(function(p){ return !p; }); setHwPickerReminderText(''); }
                         }, hwPickerReminderMode ? "🔔 提醒事項（收起）" : "🔔 提醒事項"),
                         hwPickerReminderMode && React.createElement("div", { style:{marginBottom:12} },
@@ -13955,16 +14683,13 @@ function App() {
                                     reminderHistory.map(function(rt){
                                         return React.createElement("button", {
                                             key:rt,
+                                            className:"hw-touch-feedback",
                                             style:{
                                                 padding:"5px 12px", borderRadius:20,
                                                 background:"rgba(255,215,0,.12)", border:"1.5px solid #ffd70066",
                                                 color:"#ffd700", fontSize:12, cursor:"pointer",
-                                                WebkitTapHighlightColor:"rgba(255,220,0,.5)", transition:"filter .1s"
+                                                WebkitTapHighlightColor:"transparent"
                                             },
-                                            onTouchStart: function(e){ e.currentTarget.style.filter="brightness(1.8) drop-shadow(0 0 6px #ffd700)"; },
-                                            onTouchEnd:   function(e){ e.currentTarget.style.filter=""; },
-                                            onMouseDown:  function(e){ e.currentTarget.style.filter="brightness(1.8) drop-shadow(0 0 6px #ffd700)"; },
-                                            onMouseUp:    function(e){ e.currentTarget.style.filter=""; },
                                             onClick: function(){
                                                 reminderRecordAdd(rt);
                                                                                                 if (hwPickerWpDay) {
@@ -14054,17 +14779,13 @@ function App() {
                                 var btnBorder = sel ? "2px solid "+(cur?cur.color:"#ce93d8") : (used?"2px solid #ffd70066":"1px solid rgba(255,255,255,.15)");
                                 return React.createElement("button", {
                                     key:l,
+                                    className:"hw-touch-feedback",
                                     style:{
                                         width:48, height:48, borderRadius:10,
                                         border:btnBorder, background:btnBg, color:btnColor,
                                         fontSize:14, fontWeight:700, cursor:"pointer",
-                                        WebkitTapHighlightColor:"rgba(255,220,0,.5)",
-                                        transition:"filter .1s"
+                                        WebkitTapHighlightColor:"transparent"
                                     },
-                                    onTouchStart: function(e){ e.currentTarget.style.filter="brightness(1.8) drop-shadow(0 0 8px #ffd700)"; },
-                                    onTouchEnd:   function(e){ e.currentTarget.style.filter=""; },
-                                    onMouseDown:  function(e){ e.currentTarget.style.filter="brightness(1.8) drop-shadow(0 0 8px #ffd700)"; },
-                                    onMouseUp:    function(e){ e.currentTarget.style.filter=""; },
                                     onClick: function(){
                                         setHwPickerLessons(function(prev){
                                             var next=new Set(prev);
@@ -14082,6 +14803,7 @@ function App() {
                                     var isSel = hwPickerSub===s;
                                     return React.createElement("button", {
                                         key:s,
+                                        className:"hw-touch-feedback",
                                         style:{
                                             flex:1, padding:"9px",
                                             borderRadius:10,
@@ -14089,13 +14811,8 @@ function App() {
                                             background:isSel?"rgba(21,101,192,.35)":"rgba(255,255,255,.06)",
                                             color:isSel?"#90caf9":"rgba(255,255,255,.6)",
                                             fontSize:13, fontWeight:700, cursor:"pointer",
-                                            WebkitTapHighlightColor:"rgba(255,220,0,.5)",
-                                            transition:"filter .1s"
+                                            WebkitTapHighlightColor:"transparent"
                                         },
-                                        onTouchStart: function(e){ e.currentTarget.style.filter="brightness(1.8) drop-shadow(0 0 6px #ffd700)"; },
-                                        onTouchEnd:   function(e){ e.currentTarget.style.filter=""; },
-                                        onMouseDown:  function(e){ e.currentTarget.style.filter="brightness(1.8) drop-shadow(0 0 6px #ffd700)"; },
-                                        onMouseUp:    function(e){ e.currentTarget.style.filter=""; },
                                         onClick: function(){ setHwPickerSub(s); }
                                     }, s);
                                 })
@@ -14106,19 +14823,15 @@ function App() {
                                     var isSel = hwPickerTimes===n;
                                     return React.createElement("button", {
                                         key:n,
+                                        className:"hw-touch-feedback",
                                         style:{
                                             padding:"5px 12px", borderRadius:20,
                                             border:"1.5px solid "+(isSel?"#90caf9":"rgba(255,255,255,.18)"),
                                             background:isSel?"rgba(21,101,192,.35)":"rgba(255,255,255,.06)",
                                             color:isSel?"#90caf9":"rgba(255,255,255,.6)",
                                             fontSize:13, fontWeight:700, cursor:"pointer",
-                                            WebkitTapHighlightColor:"rgba(255,220,0,.5)",
-                                            transition:"filter .1s"
+                                            WebkitTapHighlightColor:"transparent"
                                         },
-                                        onTouchStart: function(e){ e.currentTarget.style.filter="brightness(1.8) drop-shadow(0 0 6px #ffd700)"; },
-                                        onTouchEnd:   function(e){ e.currentTarget.style.filter=""; },
-                                        onMouseDown:  function(e){ e.currentTarget.style.filter="brightness(1.8) drop-shadow(0 0 6px #ffd700)"; },
-                                        onMouseUp:    function(e){ e.currentTarget.style.filter=""; },
                                         onClick: function(){ setHwPickerTimes(hwPickerTimes===n?"":n); }
                                     }, n+"次");
                                 })
@@ -14511,13 +15224,13 @@ function App() {
                 React.createElement("div", { style:{marginTop:8,marginBottom:12,paddingTop:12,borderTop:'1px solid #e8edf3',fontSize:11,fontWeight:800,color:'#8fa0b8'} }, '舊版 JSON 行事曆（保留相容）'),
                 React.createElement("p", { style:{fontSize:12,color:'#aab8cc',marginBottom:14} },
                     '目前：' + (schoolCalendarInfo.rocYear ? schoolCalendarInfo.rocYear + ' 學年度' : '未設定學年度') +
-                    (schoolCalendarInfo.last ? '，最後事件 ' + schoolCalendarInfo.last : '') + '。請貼上新學年度 JSON；內建 114 學年度僅供歷史還原。'),
+                    (schoolCalendarInfo.last ? '，最後事件 ' + schoolCalendarInfo.last : '') + '。內建資料只含共通學期節點與假日；校本日期請匯入學校公告。'),
                 React.createElement("textarea", {
                     style:{width:'100%',height:120,borderRadius:10,border:'1px solid #dde5ee',padding:'10px 12px',
                         fontSize:12,fontFamily:'monospace',resize:'none',boxSizing:'border-box',
                         background:theme==='nerv'?'rgba(255,102,0,.05)':theme==='nebula'?'rgba(150,100,255,.05)':'#f8fafc',
                         color:theme==='nerv'?'#ff8844':theme==='nebula'?'#c8b0ff':'#1e3a5f'},
-                    placeholder:'貼上 JSON 代碼，例如：{"2025-09-01":"🏫 開學日",...}',
+                    placeholder:'貼上 JSON 代碼，例如：{"2026-08-31":"🏫 開學日",...}',
                     value: calImportText,
                     onChange: function(e){ setCalImportText(e.target.value); }
                 }),
@@ -14526,15 +15239,15 @@ function App() {
                         style:{flex:1,padding:'12px',borderRadius:12,border:'1px solid #dde5ee',background:'#f0f4ff',
                             color:'#5a6a80',fontSize:13,fontWeight:700,cursor:'pointer'},
                         onClick: function(){
-                            // 使用目前已內建的資料（重設為預設值，從 localStorage 清除）
-                            safeRemove('hw5ren:schoolCal');
-                            var resetCalendarCid = _sl.get('hw5ren:activeClass') || activeClassId;
-                            if (resetCalendarCid) safeRemove('hw5ren:schoolCal:' + resetCalendarCid);
-                            safeSet('hw5ren:resetSchoolCal', '1');
-                            if (resetCalendarCid) markSettingsDirty('schoolCalendar:' + resetCalendarCid, '學校行事曆');
-                            window.location.reload();
+                            var builtInCalendar = builtInSchoolCalendarForYear(schoolYear || academicYearForDate(today()));
+                            if (!Object.keys(builtInCalendar).length) {
+                                alert('這個學年度尚未提供內建共同日期，請使用上方公開行事曆匯入。');
+                                return;
+                            }
+                            if (!window.confirm('將以本班級學年度的內建共同日期覆蓋目前舊版 JSON 行事曆，確定繼續？')) return;
+                            saveSchoolCalendar(builtInCalendar);
                         }
-                    }, '還原內建 114（歷史）'),
+                    }, '載入本學年度內建日期'),
                     React.createElement("button", {
                         style:{flex:1,padding:'12px',borderRadius:12,border:'none',
                             background:theme==='nerv'?'rgba(255,102,0,.2)':'#1e3a5f',
@@ -14609,7 +15322,7 @@ function App() {
             React.createElement("div", { className:"mucha-panel-divider", "aria-hidden":"true" }),
             React.createElement("section", { className:"class-locator-hero", 'aria-label':"目前班級資料摘要" },
                 React.createElement("div", { style:{display:"flex",alignItems:"start",gap:10} },
-                    React.createElement("span", { className:"class-context-pin", 'aria-hidden':"true" }, "⌖"),
+                    React.createElement("span", { className:"class-context-pin", 'aria-hidden':"true" }, renderUiIcon("locator")),
                     React.createElement("div", { style:{minWidth:0,flex:1} },
                         React.createElement("div", { style:{fontSize:15,fontWeight:900,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"} }, locatorClassTitle),
                         React.createElement("div", { style:{fontSize:10,opacity:.65,marginTop:2,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"} },
@@ -14801,88 +15514,62 @@ function App() {
                     React.createElement("button", { className:"sheet-home-btn", onClick:function(){ setShowGlobalSearch(false); setView("month"); }, 'aria-label':"回到首頁", title:"回到首頁" }, React.createElement("svg", { viewBox:"0 0 24 24", fill:"none", stroke:"currentColor", strokeWidth:"2", strokeLinecap:"round", strokeLinejoin:"round", "aria-hidden":"true", focusable:"false" }, React.createElement("path", { d:"M3 10.6 12 3.5l9 7.1" }), React.createElement("path", { d:"M5.6 9.6V20.5h12.8V9.6" })))
                 )
             )),
-        showGearMenu && (React.createElement("div", { role:'dialog', 'aria-modal':'true', 'aria-label':'功能選單', onClick: function() { setShowGearMenu(false); }, style: { position: 'fixed', inset: 0, zIndex: 350, background: 'rgba(0,0,0,.6)' } },
-            React.createElement("div", { onClick: function(e){ e.stopPropagation(); }, style: {
+        showGearMenu && (React.createElement("div", { className:"gear-menu-overlay", role:'dialog', 'aria-modal':'true', 'aria-label':'功能選單', onClick: function() { setShowGearMenu(false); }, style: { position: 'fixed', inset: 0, zIndex: 350, background: 'rgba(0,0,0,.6)' } },
+            React.createElement("div", { className:"gear-menu-panel", onClick: function(e){ e.stopPropagation(); }, style: {
                 position: 'absolute', bottom: 0, left: 0, right: 0,
                 background: theme === 'nerv' ? '#120400' : theme === 'nebula' ? '#0a0c20' : theme === 'mucha' ? '#f4ebdd' : theme === 'odyssey' ? '#f1eadc' : '#fff',
-                borderRadius: '20px 20px 0 0',
-                padding: '20px 0 calc(14px + var(--safe-bottom))',
-                boxShadow: '0 -8px 40px rgba(0,0,0,.3)',
+                borderRadius: '28px 28px 0 0',
+                padding: '26px 0 calc(14px + var(--safe-bottom))',
+                boxShadow: '0 -16px 48px rgba(0,0,0,.34)',
                 maxHeight:'88dvh', overflowY:'auto', overscrollBehavior:'contain', WebkitOverflowScrolling:'touch'
             } },
-                React.createElement("div", { style: {
-                    textAlign: 'center', fontSize: 11, fontWeight: 700, letterSpacing: 3,
-                    color: theme === 'nerv' ? 'rgba(255,102,0,.5)' : theme === 'nebula' ? 'rgba(150,120,255,.5)' : theme === 'mucha' ? '#7a5a2d' : theme === 'odyssey' ? '#876337' : '#aab8cc',
-                    marginBottom: 8, fontFamily: theme === 'nerv' ? 'Share Tech Mono,monospace' : 'inherit'
-                } }, theme === 'nerv' ? '// VENUS OS MENU //' : 'Venus OS'),
+                React.createElement("div", { className:"gear-menu-title" }, theme === 'nerv' ? '// VENUS OS MENU //' : 'Venus OS'),
                 React.createElement("div", { className:"mucha-panel-divider", "aria-hidden":"true" }),
                 // v20.20：帳號相關三列整合成單一橫列，減少選單長度。
-                React.createElement("div", { style: {
-                    display:'flex', alignItems:'center', gap:10,
-                    padding:'10px 20px 14px',
-                    borderBottom:'1px solid var(--card-line,rgba(0,0,0,.06))'
-                } },
-                    React.createElement("span", { 'aria-hidden':'true', style:{ fontSize:16, flexShrink:0 } }, authed ? '👤' : '📱'),
-                    React.createElement("span", { style: {
-                        flex:1, minWidth:0, fontSize:13, opacity:.8,
-                        overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
-                        fontFamily: theme === 'nerv' ? 'Share Tech Mono,monospace' : 'inherit'
-                    } }, authed ? userEmail : (theme === 'nerv' ? 'LOCAL DEVICE MODE' : '目前使用本機模式')),
+                React.createElement("div", { className:"gear-account-row" },
+                    React.createElement("span", { className:"gear-account-icon", 'aria-hidden':'true' }, renderUiIcon(authed ? "user" : "device")),
+                    React.createElement("span", { className:"gear-account-copy" }, authed ? userEmail : (theme === 'nerv' ? 'LOCAL DEVICE MODE' : '目前使用本機模式')),
                     authed && React.createElement("button", {
                         onClick: function(){ setShowGearMenu(false); switchGoogleAccount(); },
                         'aria-label':'切換 Google 帳號',
-                        style: { flexShrink:0, padding:'7px 12px', borderRadius:8, border:'none',
-                                 background:'var(--card-chip,rgba(0,0,0,.07))', color:'inherit',
-                                 fontSize:12, fontWeight:600, cursor:'pointer' }
-                    }, theme === 'nerv' ? '\u21c4 SWITCH' : '🔁 切換'),
+                        className:"gear-account-action"
+                    }, theme === 'nerv' ? '\u21c4 SWITCH' : '切換'),
                     authed && React.createElement("button", {
                         onClick: function(){ setShowGearMenu(false); signOutAccount(); },
                         'aria-label':'登出 Google 帳號',
-                        style: { flexShrink:0, padding:'7px 12px', borderRadius:8, border:'none',
-                                 background:'var(--card-chip,rgba(0,0,0,.07))', color:'inherit',
-                                 fontSize:12, fontWeight:600, cursor:'pointer' }
-                    }, theme === 'nerv' ? '\u25c7 OUT' : '🚪 登出'),
+                        className:"gear-account-action"
+                    }, theme === 'nerv' ? '\u25c7 OUT' : '登出'),
                     !authed && React.createElement("button", {
                         onClick: function(){ setShowGearMenu(false); leaveLocalModeForLogin(); },
-                        style: { flexShrink:0, padding:'7px 12px', borderRadius:8, border:'none',
-                                 background:'var(--card-accent,rgba(0,0,0,.12))', color:'inherit',
-                                 fontSize:12, fontWeight:600, cursor:'pointer' }
-                    }, theme === 'nerv' ? '\u25c7 LOGIN' : '☁️ 登入')
+                        'aria-label':'登入 Google 帳號',
+                        className:"gear-account-action"
+                    }, theme === 'nerv' ? '\u25c7 LOGIN' : '登入')
                 ),
                 [
-                    { icon: '🏠', label: '今日工作台', nervLabel: '\u25c8 TODAY DESK', action: function(){ openTodayWorkspace(); setShowGearMenu(false); } },
-                    { icon: '🔎', label: '全域搜尋', nervLabel: '\u25c7 GLOBAL SEARCH', action: function(){ setShowGlobalSearch(true); setShowGearMenu(false); } },
-                    { icon: '🗂', label: '歷年档案', nervLabel: '\u25ab ARCHIVE', action: function(){ setView('archive'); setShowGearMenu(false); } },
-                    { icon: '📅', label: '週作業計畫', nervLabel: '\u25a6 WEEK PLAN', action: function(){ wpOpenPlan(selDate || today()); setShowGearMenu(false); } },
-                    { icon: syncConflicts.length > 0 ? '⚠️' : '🔄', label: '同步衝突' + (syncConflicts.length > 0 ? '（' + syncConflicts.length + '）' : ''), nervLabel: '\u25c8 SYNC CONFLICT' + (syncConflicts.length > 0 ? ' [' + syncConflicts.length + ']' : ''), action: function(){ setShowConflictCenter(true); setShowGearMenu(false); } },
-                    { icon: '🩺', label: '技術診斷', nervLabel: '\u25c7 DIAGNOSTICS', hidden:view !== 'day', action: function(){ var btn=document.querySelector('[data-day-tool="diagnostic"]'); if(btn) btn.click(); setShowGearMenu(false); } },
-                    { icon: '🎴', label: '獎卡資料掃描', nervLabel: '\u25c7 CARD SCAN', hidden:view !== 'day', action: function(){ var btn=document.querySelector('[data-day-tool="card-scan"]'); if(btn) btn.click(); setShowGearMenu(false); } },
-                    { icon: '⚙️', label: '班級設定', nervLabel: '\u2699 CONFIG', action: function(){ setView('settings'); setShowGearMenu(false); } },
-                    { icon: '📋', label: '匯入行事曆', nervLabel: '\u25c8 IMPORT CAL', action: function(){ setShowCalImport(true); setShowGearMenu(false); } },
-                    { icon: '🎴', label: '開啟獎卡系統', nervLabel: '\u25c7 CARD SYSTEM', action: function(){ window.open('https://n3a209-leon.github.io/card-system'); setShowGearMenu(false); } },
+                    { icon:'home', label:'今日工作台', nervLabel:'\u25c8 TODAY DESK', action:function(){ openTodayWorkspace(); setShowGearMenu(false); } },
+                    { icon:'search', label:'全域搜尋', nervLabel:'\u25c7 GLOBAL SEARCH', action:function(){ setShowGlobalSearch(true); setShowGearMenu(false); } },
+                    { icon:'archive', label:'歷年檔案', nervLabel:'\u25ab ARCHIVE', action:function(){ openViewAfterGear('archive'); } },
+                    { icon:'calendar', label:'週作業計畫', nervLabel:'\u25a6 WEEK PLAN', action:function(){ wpOpenPlan(selDate || today()); setShowGearMenu(false); } },
+                    { icon:syncConflicts.length > 0 ? 'warning' : 'sync', label:'同步衝突' + (syncConflicts.length > 0 ? '（' + syncConflicts.length + '）' : ''), nervLabel:'\u25c8 SYNC CONFLICT' + (syncConflicts.length > 0 ? ' [' + syncConflicts.length + ']' : ''), action:function(){ setShowConflictCenter(true); setShowGearMenu(false); } },
+                    { icon:'activity', label:'技術診斷', nervLabel:'\u25c7 DIAGNOSTICS', hidden:view !== 'day', action:function(){ var btn=document.querySelector('[data-day-tool="diagnostic"]'); if(btn) btn.click(); setShowGearMenu(false); } },
+                    { icon:'card', label:'獎卡資料掃描', nervLabel:'\u25c7 CARD SCAN', hidden:view !== 'day', action:function(){ var btn=document.querySelector('[data-day-tool="card-scan"]'); if(btn) btn.click(); setShowGearMenu(false); } },
+                    { icon:'settings', label:'班級設定', nervLabel:'\u2699 CONFIG', action:function(){ openViewAfterGear('settings'); } },
+                    { icon:'upload', label:'匯入行事曆', nervLabel:'\u25c8 IMPORT CAL', action:function(){ setShowCalImport(true); setShowGearMenu(false); } },
+                    { icon:'card', label:'開啟獎卡系統', nervLabel:'\u25c7 CARD SYSTEM', action:function(){ window.open('https://n3a209-leon.github.io/card-system'); setShowGearMenu(false); } },
                 ].filter(function(item){ return !item.hidden; }).map(function(item, i) {
                     return React.createElement("button", {
-                        key: i, onClick: item.action, disabled:!!item.disabled,
-                        style: {
-                            display: 'flex', alignItems: 'center', gap: 16,
-                            width: '100%', padding: '16px 28px',
-                            background: 'transparent', border: 'none',
-                            borderTop: i > 0 ? '1px solid ' + (theme === 'nerv' ? 'rgba(255,102,0,.1)' : theme === 'nebula' ? 'rgba(150,100,255,.1)' : theme === 'mucha' ? 'rgba(139,99,47,.16)' : 'rgba(0,0,0,.06)') : 'none',
-                            cursor: item.disabled ? 'default' : 'pointer', textAlign: 'left',
-                            opacity: item.disabled ? 0.68 : 1,
-                            color: theme === 'nerv' ? '#ff8844' : theme === 'nebula' ? '#c8b0ff' : theme === 'mucha' ? '#39312c' : theme === 'odyssey' ? '#17333b' : '#1e3a5f',
-                            fontFamily: theme === 'nerv' ? 'Share Tech Mono,monospace' : 'inherit',
-                            fontSize: 15, fontWeight: 600,
-                        }
+                        key:item.label, className:"gear-menu-item", onClick:item.action,
+                        disabled:!!item.disabled, 'aria-label':theme === 'nerv' ? item.nervLabel : item.label
                     },
-                        React.createElement("span", { style: { fontSize: 20, width: 28, textAlign: 'center' } }, item.icon),
-                        React.createElement("span", null, theme === 'nerv' ? item.nervLabel : item.label)
+                        React.createElement("span", { className:"gear-menu-icon", 'aria-hidden':'true' }, renderUiIcon(item.icon)),
+                        React.createElement("span", { className:"gear-menu-label" }, theme === 'nerv' ? item.nervLabel : item.label),
+                        React.createElement("span", { className:"gear-menu-chevron", 'aria-hidden':'true' }, "›")
                     );
                 }),
                 // v20.59：功能選單的回首頁改用與其他面板相同的左下角浮動圓鈕，
                 // 不再是清單裡的一列——四個面板的操作位置一致，肌肉記憶才建立得起來。
                 React.createElement("div", { className:"sheet-home-dock", style:{ paddingLeft:28, paddingRight:28 } },
-                    React.createElement("button", { className:"sheet-home-btn", onClick:function(){ setView('month'); setShowGearMenu(false); }, 'aria-label':"回到首頁", title:"回到首頁" },
+                    React.createElement("button", { className:"sheet-home-btn", onClick:function(){ openViewAfterGear('month'); }, 'aria-label':"回到首頁", title:"回到首頁" },
                     React.createElement("svg", { viewBox:"0 0 24 24", fill:"none", stroke:"currentColor", strokeWidth:"2", strokeLinecap:"round", strokeLinejoin:"round", "aria-hidden":"true", focusable:"false" }, React.createElement("path", { d:"M3 10.6 12 3.5l9 7.1" }), React.createElement("path", { d:"M5.6 9.6V20.5h12.8V9.6" }))
                 )
                 )
@@ -15146,9 +15833,7 @@ function App() {
                         React.createElement("button", {
                             className: "gr-tab", style:{padding:"6px 12px"},
                             onClick: function() {
-                                var _d = new Date(grDateSel + "T00:00:00");
-                                _d.setDate(_d.getDate() - 1);
-                                setGrDateSel(_d.toISOString().slice(0,10));
+                                setGrDateSel(shiftLocalDate(grDateSel, -1));
                             }
                         }, "\u2039"),
                         React.createElement("input", {
@@ -15158,9 +15843,7 @@ function App() {
                         React.createElement("button", {
                             className: "gr-tab", style:{padding:"6px 12px"},
                             onClick: function() {
-                                var _d = new Date(grDateSel + "T00:00:00");
-                                _d.setDate(_d.getDate() + 1);
-                                setGrDateSel(_d.toISOString().slice(0,10));
+                                setGrDateSel(shiftLocalDate(grDateSel, 1));
                             }
                         }, "\u203a")
                     ),
@@ -15750,11 +16433,7 @@ function App() {
                                                 React.createElement("button", { className: "wp-del-btn", onClick: function() { wpDelItem(ds, idx); } }, "×")
                                             );
                                         }),
-                                        React.createElement("button", { className: "wp-add-btn",
-                                            onTouchStart: function(e){ e.currentTarget.style.filter="brightness(1.8) drop-shadow(0 0 6px #ffd700)"; },
-                                            onTouchEnd:   function(e){ e.currentTarget.style.filter=""; },
-                                            onMouseDown:  function(e){ e.currentTarget.style.filter="brightness(1.8) drop-shadow(0 0 6px #ffd700)"; },
-                                            onMouseUp:    function(e){ e.currentTarget.style.filter=""; },
+                                        React.createElement("button", { className: "wp-add-btn hw-touch-feedback",
                                             onClick: function() { hwPickerOpenForWp(ds); }
                                         }, "+")
                                     );
@@ -15773,27 +16452,29 @@ function App() {
         React.createElement("nav", { className:"mobile-dock", "aria-label":"手機快速導覽" },
             React.createElement("button", {
                 type:"button", className:"mobile-dock-btn" + ((view === "month" || view === "day") ? " active" : ""),
-                onClick:function(){ setView("month"); }, "aria-label":"開啟月曆紀錄"
-            }, React.createElement("span", { className:"dock-icon", "aria-hidden":"true" }, "📅"), React.createElement("span", { className:"dock-label" }, "月曆")),
+                onClick:function(){ setView("month"); }, "aria-label":"開啟月曆紀錄",
+                "aria-current":(view === "month" || view === "day") ? "page" : undefined
+            }, React.createElement("span", { className:"dock-icon", "aria-hidden":"true" }, renderUiIcon("calendar")), React.createElement("span", { className:"dock-label" }, "月曆")),
             React.createElement("button", {
                 type:"button", className:"mobile-dock-btn",
                 onClick:openTodayWorkspace, "aria-label":"開啟今日工作台"
-            }, React.createElement("span", { className:"dock-icon", "aria-hidden":"true" }, "🏠"), React.createElement("span", { className:"dock-label" }, "今天")),
+            }, React.createElement("span", { className:"dock-icon", "aria-hidden":"true" }, renderUiIcon("home")), React.createElement("span", { className:"dock-label" }, "今天")),
             React.createElement("button", {
                 type:"button", className:"mobile-dock-btn",
                 onClick:function(){ setShowGlobalSearch(true); }, "aria-label":"開啟全域搜尋"
-            }, React.createElement("span", { className:"dock-icon", "aria-hidden":"true" }, "🔎"), React.createElement("span", { className:"dock-label" }, "搜尋")),
+            }, React.createElement("span", { className:"dock-icon", "aria-hidden":"true" }, renderUiIcon("search")), React.createElement("span", { className:"dock-label" }, "搜尋")),
             React.createElement("button", {
                 type:"button", className:"mobile-dock-btn",
                 onClick:function(){ setGrCenter(true); setGrTab("recent"); setGrFilter("7"); setGrSearch(""); },
                 "aria-label":"開啟輔導紀錄中心"
-            }, React.createElement("span", { className:"dock-icon", "aria-hidden":"true" }, "📋"), React.createElement("span", { className:"dock-label" }, "輔導")),
+            }, React.createElement("span", { className:"dock-icon", "aria-hidden":"true" }, renderUiIcon("clipboard")), React.createElement("span", { className:"dock-label" }, "輔導")),
             React.createElement("button", {
                 type:"button", className:"mobile-dock-btn" + ((view === "settings" || view === "archive") ? " active" : ""),
-                onClick:function(){ setShowGearMenu(true); }, "aria-label":"開啟更多功能"
-            }, React.createElement("span", { className:"dock-icon", "aria-hidden":"true" }, "•••"), React.createElement("span", { className:"dock-label" }, "更多"))
+                onClick:function(){ setShowGearMenu(true); }, "aria-label":"開啟更多功能",
+                "aria-current":(view === "settings" || view === "archive") ? "page" : undefined
+            }, React.createElement("span", { className:"dock-icon", "aria-hidden":"true" }, renderUiIcon("more")), React.createElement("span", { className:"dock-label" }, "更多"))
         ),
-        view === "settings" && (React.createElement(SettingsView, { groups: groups, saveGroups: saveGroups, groupVersions: groupVersions, saveGroupVersions: saveGroupVersions, saveSettingsAtomic: saveSettingsAtomic, className: className, setClassName: (v) => { setClassName(v); _sl.set("hw5ren:className", v); saveSettingsToFirebase(v, undefined, undefined, undefined); }, schoolName: schoolName, setSchoolName: (v) => { setSchoolName(v); _sl.set("hw5ren:school", v); saveSettingsToFirebase(undefined, v, undefined, undefined); }, schoolYear: schoolYear, setSchoolYear: (v) => { setSchoolYear(v); _sl.set("hw5ren:year", v); saveSettingsToFirebase(undefined, undefined, v, undefined); }, semStart1: semStart1, setSemStart1: (v) => { setSemStart1(v); _sl.set("hw5ren:semStart1", v); saveSettingsToFirebase(undefined, undefined, undefined, undefined, undefined, undefined, v, undefined); }, semStart2: semStart2, setSemStart2: (v) => { setSemStart2(v); _sl.set("hw5ren:semStart2", v); saveSettingsToFirebase(undefined, undefined, undefined, undefined, undefined, undefined, undefined, v); }, semEnd1: semEnd1, semEnd2: semEnd2, schoolCalendar: schoolCalendar, classSize: classSize, setClassSize: (v) => { setClassSize(v); _sl.set("hw5ren:classSize", String(v)); saveSettingsToFirebase(undefined, undefined, undefined, undefined, undefined, v, undefined, undefined); }, officers: officers, saveOfficers: saveOfficers, officerPresets: officerPresets, setOfficerPresets: (v) => { setOfficerPresets(v); _sl.set("hw5ren:officerPresets", JSON.stringify(v)); markSettingsDirty('settings:main', '\u500B\u4EBA\u6E05\u55AE'); }, onClose: () => setView("month"), isNerv: isNerv, idbKeys: idbKeys, idbGet: idbGet, idbDelete: idbDelete, openDB: openDB, DB_STORE: DB_STORE, classes: classes, addClass: addClass, firebaseUid: firebaseUid, checkCurrentArchive:checkCurrentArchive, startSchoolYearTransition:startSchoolYearTransition, onOpenArchive:function(){setView("archive");} })),
+        view === "settings" && (React.createElement(MemoSettingsView, { groups: groups, saveGroups: saveGroups, groupVersions: groupVersions, saveGroupVersions: saveGroupVersions, saveSettingsAtomic: saveSettingsAtomic, className: className, setClassName: (v) => { setClassName(v); _sl.set("hw5ren:className", v); saveSettingsToFirebase(v, undefined, undefined, undefined); }, schoolName: schoolName, setSchoolName: (v) => { setSchoolName(v); _sl.set("hw5ren:school", v); saveSettingsToFirebase(undefined, v, undefined, undefined); }, schoolYear: schoolYear, setSchoolYear: (v) => { setSchoolYear(v); _sl.set("hw5ren:year", v); saveSettingsToFirebase(undefined, undefined, v, undefined); }, semStart1: semStart1, setSemStart1: (v) => { setSemStart1(v); _sl.set("hw5ren:semStart1", v); saveSettingsToFirebase(undefined, undefined, undefined, undefined, undefined, undefined, v, undefined); }, semStart2: semStart2, setSemStart2: (v) => { setSemStart2(v); _sl.set("hw5ren:semStart2", v); saveSettingsToFirebase(undefined, undefined, undefined, undefined, undefined, undefined, undefined, v); }, semEnd1: semEnd1, semEnd2: semEnd2, schoolCalendar: schoolCalendar, classSize: classSize, setClassSize: (v) => { setClassSize(v); _sl.set("hw5ren:classSize", String(v)); saveSettingsToFirebase(undefined, undefined, undefined, undefined, undefined, v, undefined, undefined); }, officers: officers, saveOfficers: saveOfficers, officerPresets: officerPresets, setOfficerPresets: (v) => { setOfficerPresets(v); _sl.set("hw5ren:officerPresets", JSON.stringify(v)); markSettingsDirty('settings:main', '\u500B\u4EBA\u6E05\u55AE'); }, onClose: () => setView("month"), isNerv: isNerv, idbKeys: idbKeys, idbGet: idbGet, idbDelete: idbDelete, openDB: openDB, DB_STORE: DB_STORE, classes: classes, addClass: addClass, firebaseUid: firebaseUid, checkCurrentArchive:checkCurrentArchive, startSchoolYearTransition:startSchoolYearTransition, onOpenArchive:function(){setView("archive");} })),
         view === "archive" && (React.createElement(ArchiveView, { idbKeys: idbKeys, idbGet: idbGet, idbSet: idbSet, groups: groups, schoolYear: schoolYear, className: className, schoolName: schoolName, classes: classes, yearRecords: yearRecords, isNerv: isNerv, firebaseUid: firebaseUid, onBackupDone: function(){ setBackupEpoch(Date.now()); }, onDeleteClass:permanentlyDeleteClass, deleteBusyClassId:deleteBusyClassId, onJumpDate:jumpToClassDate })))));
 }
 
@@ -15863,56 +16544,14 @@ function App() {
 </script>
 
 <script>
-// ── Ripple 點擊波紋效果 ──
-(function() {
-  document.addEventListener('click', function(e) {
-    var btn = e.target && e.target.closest ? e.target.closest('button') : null;
-    if (!btn) return;
-
-    // v20.16：舊版每次點擊都重讀 btn.style.position 當作「原值」。450ms 內
-    // 連點兩次時，第二次讀到的已經是自己上一次寫進去的 'relative'，還原就
-    // 永久失效——殘留的 overflow:hidden 會裁掉按鈕內的下拉、提示與徽章。
-    // 改成只有第一次進入時才記錄原值，並用計數器管理還原時機。
-    if (btn._limuRippleDepth === undefined) btn._limuRippleDepth = 0;
-    if (btn._limuRippleDepth === 0) {
-      btn._limuRipplePrev = { position: btn.style.position, overflow: btn.style.overflow };
-      btn.style.position = 'relative';
-      btn.style.overflow = 'hidden';
-    }
-    btn._limuRippleDepth++;
-
-    var wave = document.createElement('span');
-    wave.className = 'ripple-wave';
-    var rect = btn.getBoundingClientRect();
-    var size = Math.max(rect.width, rect.height);
-    wave.style.width = wave.style.height = size + 'px';
-    wave.style.left = (e.clientX - rect.left - size / 2) + 'px';
-    wave.style.top  = (e.clientY - rect.top  - size / 2) + 'px';
-    btn.appendChild(wave);
-
-    setTimeout(function() {
-      try { wave.remove(); } catch(err) {}
-      btn._limuRippleDepth--;
-      if (btn._limuRippleDepth <= 0) {
-        btn._limuRippleDepth = 0;
-        var prev = btn._limuRipplePrev || { position:'', overflow:'' };
-        btn.style.position = prev.position;
-        btn.style.overflow = prev.overflow;
-      }
-    }, 450);
-  }, true);
-})();
-</script>
-
-<script>
 // ── Service Worker 註冊（v20.15：VENUS 圖示＋全螢幕開場）──
 (function() {
   if (!('serviceWorker' in navigator)) return;
   var updateRegistration = null;
   var reloadingForUpdate = false;
   var updateActivationRequested = false;
-  var SW_BUILD_ID = 'limu-teacher-v20-60-20260801';
-  var SW_CACHE_NAME = 'hw-tracker-v20-60';
+  var SW_BUILD_ID = 'limu-teacher-v20-64-20260804';
+  var SW_CACHE_NAME = 'hw-tracker-v20-64';
   var SW_URL = './sw.js?build=' + encodeURIComponent(SW_BUILD_ID);
   var lastUpdateCheck = 0;
   // v20.16：checkBuildConsistency 本來就有 15 秒節流，但 reg.update() 沒有。
