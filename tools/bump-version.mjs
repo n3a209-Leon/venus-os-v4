@@ -2,7 +2,8 @@
 /**
  * LIMU 版本號同步工具
  * ---------------------------------------------------------------------------
- * 版本識別散在 9 個地方（index.html 5 處、sw.js 3 處、version.json 4 欄）。
+ * 版本識別散在 10 個字串位置（index.html 7 處、sw.js 3 處），另有
+ * version.json 4 欄；工具必須連建置日期一起同步。
  * 手動同步至少出過兩次事：
  *   - 有一版 sw.js 被一行有副作用的批次指令清成 0 byte，
  *     是碰巧 grep 沒輸出才發現；
@@ -12,7 +13,7 @@
  *
  * 用法：
  *   node tools/bump-version.mjs patch        # 20.57.0 → 20.58.0
- *   node tools/bump-version.mjs 20.60.0      # 指定版本
+ *   node tools/bump-version.mjs 20.61.0      # 指定版本
  *   node tools/bump-version.mjs --check      # 只檢查一致性，不改任何檔案
  *
  * 註：LIMU 的慣例是次版號進位（20.57 → 20.58），patch 即為此意。
@@ -35,6 +36,7 @@ const F = {
 const FIELDS = [
   { file: 'index', re: /(window\.__LIMU_VERSION = ')([\d.]+)(')/,        make: v => v.version },
   { file: 'index', re: /(\|\| ")([\d.]+)(";)/,                            make: v => v.version },
+  { file: 'index', re: /(APP_BUILD_DATE = ")([^"]+)(")/,                  make: v => v.buildDate },
   { file: 'index', re: /(APP_BUILD_ID = ")([^"]+)(")/,                    make: v => v.buildId },
   { file: 'index', re: /(APP_CACHE_NAME = ")([^"]+)(")/,                  make: v => v.cacheName },
   { file: 'index', re: /(SW_BUILD_ID = ')([^']+)(')/,                     make: v => v.buildId },
@@ -55,9 +57,9 @@ function readAll() {
   return out;
 }
 
-function derive(version) {
+function derive(version, buildDate) {
   const short = 'v' + version.split('.').slice(0, 2).join('-').replace('.', '-');
-  const date = JSON.parse(readFileSync(F.version, 'utf8')).buildDate || todayStamp();
+  const date = buildDate || todayStamp();
   return {
     version,
     short,
@@ -68,9 +70,12 @@ function derive(version) {
 }
 
 function todayStamp() {
-  const d = new Date();
-  const p = n => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+  // 建置日期固定採臺灣時區，避免在 UTC／美國時區的 CI 產生前一天版本。
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Taipei', year: 'numeric', month: '2-digit', day: '2-digit'
+  }).formatToParts(new Date());
+  const map = Object.fromEntries(parts.map(part => [part.type, part.value]));
+  return `${map.year}-${map.month}-${map.day}`;
 }
 
 function bumpMinor(version) {
@@ -88,7 +93,7 @@ function check(files, expect) {
     if (m[2] !== want) problems.push(`${f.file}：${m[2]} ≠ ${want}`);
   }
   const vj = JSON.parse(files.version);
-  for (const k of ['version', 'buildId', 'cacheName']) {
+  for (const k of ['version', 'buildId', 'buildDate', 'cacheName']) {
     if (vj[k] !== expect[k]) problems.push(`version.json.${k}：${vj[k]} ≠ ${expect[k]}`);
   }
   return problems;
@@ -104,6 +109,7 @@ function apply(files, next) {
   const vj = JSON.parse(files.version);
   vj.version = next.version;
   vj.buildId = next.buildId;
+  vj.buildDate = next.buildDate;
   vj.cacheName = next.cacheName;
   out.version = JSON.stringify(vj, null, 2) + '\n';
 
@@ -123,7 +129,8 @@ const files = readAll();
 const current = JSON.parse(files.version).version;
 
 if (arg === '--check' || !arg) {
-  const problems = check(files, derive(current));
+  const currentDate = JSON.parse(files.version).buildDate || todayStamp();
+  const problems = check(files, derive(current, currentDate));
   if (problems.length) {
     console.error(`✗ 版本識別不一致（目前 ${current}）：`);
     problems.forEach(p => console.error('  -', p));
@@ -139,7 +146,7 @@ if (!/^\d+\.\d+\.\d+$/.test(target)) {
   process.exit(1);
 }
 
-const next = derive(target);
+const next = derive(target, todayStamp());
 const updated = apply(files, next);
 
 // 寫檔前先驗證：每個檔案都不得為空、且新版本字串確實已出現
@@ -165,4 +172,4 @@ if (problems.length) {
 console.log(`✓ ${current} → ${next.version}`);
 console.log(`  建置 ${next.buildId}`);
 console.log(`  快取 ${next.cacheName}`);
-console.log(`  已同步 index.html（6 處）、sw.js（3 處）、version.json、README`);
+console.log(`  已同步 index.html（7 處）、sw.js（3 處）、version.json、README`);
