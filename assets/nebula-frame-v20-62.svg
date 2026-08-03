@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 192 192" fill="none">
+  <g stroke-linecap="round" stroke-linejoin="round">
+    <rect x="14" y="14" width="164" height="164" rx="20" stroke="#9D86FF" stroke-opacity=".68" stroke-width="1.5"/>
+    <rect x="21" y="21" width="150" height="150" rx="15" stroke="#D7BA81" stroke-opacity=".28"/>
+    <g stroke="#D7BA81" stroke-opacity=".64">
+      <path d="M14 50c17 0 17-19 36-19M142 31c19 0 19 19 36 19M178 142c-17 0-17 19-36 19M50 161c-19 0-19-19-36-19"/>
+      <circle cx="31" cy="31" r="7"/><circle cx="161" cy="31" r="7"/><circle cx="161" cy="161" r="7"/><circle cx="31" cy="161" r="7"/>
+    </g>
+    <g fill="#E8DDFF" stroke="#8E78E8" stroke-width=".8">
+      <path d="m31 25 1.7 4.3L37 31l-4.3 1.7L31 37l-1.7-4.3L25 31l4.3-1.7L31 25Z"/>
+      <path d="m161 25 1.7 4.3 4.3 1.7-4.3 1.7-1.7 4.3-1.7-4.3L155 31l4.3-1.7 1.7-4.3Z"/>
+      <path d="m161 155 1.7 4.3 4.3 1.7-4.3 1.7-1.7 4.3-1.7-4.3-4.3-1.7 4.3-1.7 1.7-4.3Z"/>
+      <path d="m31 155 1.7 4.3 4.3 1.7-4.3 1.7L31 167l-1.7-4.3L25 161l4.3-1.7L31 155Z"/>
+    </g>
+    <g stroke="#AFA0F4" stroke-opacity=".36">
+      <path d="M53 14 69 21l18-7M105 14l18 7 16-7M53 178l16-7 18 7M105 178l18-7 16 7"/>
+      <path d="M14 53l7 16-7 18M14 105l7 18-7 16M178 53l-7 16 7 18M178 105l-7 18 7 16"/>
+    </g>
+  </g>
+</svg>

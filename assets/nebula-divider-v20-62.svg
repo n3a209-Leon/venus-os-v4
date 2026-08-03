@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="18" viewBox="0 0 320 18" fill="none">
+  <defs>
+    <linearGradient id="orbit" x1="0" y1="0" x2="320" y2="0" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#8E78E8" stop-opacity="0"/>
+      <stop offset=".2" stop-color="#8E78E8" stop-opacity=".56"/>
+      <stop offset=".5" stop-color="#D7BA81" stop-opacity=".82"/>
+      <stop offset=".8" stop-color="#8E78E8" stop-opacity=".56"/>
+      <stop offset="1" stop-color="#8E78E8" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <path d="M0 9h132M188 9h132" stroke="url(#orbit)" stroke-width="1.1"/>
+  <path d="M76 12c29-9 43-9 67-3M244 12c-29-9-43-9-67-3" stroke="#6E91E8" stroke-opacity=".32" stroke-dasharray="3 6"/>
+  <circle cx="160" cy="9" r="7" stroke="#9D86FF" stroke-opacity=".48"/>
+  <path d="m160 1.8 1.9 5.3 5.3 1.9-5.3 1.9-1.9 5.3-1.9-5.3-5.3-1.9 5.3-1.9 1.9-5.3Z" fill="#E8DDFF" stroke="#D7BA81" stroke-width=".8"/>
+  <g fill="#E5D6FF">
+    <circle cx="121" cy="7" r="1.25"/><circle cx="139" cy="10.5" r="1"/><circle cx="181" cy="10.5" r="1"/><circle cx="199" cy="7" r="1.25"/>
+  </g>
+</svg>

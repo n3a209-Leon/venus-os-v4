@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 192 192" fill="none">
+  <g stroke-linecap="round" stroke-linejoin="round">
+    <rect x="14" y="14" width="164" height="164" rx="20" stroke="#9A7341" stroke-opacity=".72" stroke-width="1.6"/>
+    <rect x="22" y="22" width="148" height="148" rx="14" stroke="#315A62" stroke-opacity=".28"/>
+    <g stroke="#9A7341" stroke-opacity=".62">
+      <path d="M14 52c18 0 17-21 38-21M140 31c21 0 20 21 38 21M178 140c-18 0-17 21-38 21M52 161c-21 0-20-21-38-21" stroke-width="1.4"/>
+      <path d="M31 39 39 31M153 31l8 8M161 153l-8 8M39 161l-8-8"/>
+    </g>
+    <g stroke="#315A62" stroke-opacity=".46">
+      <circle cx="31" cy="31" r="8"/><circle cx="161" cy="31" r="8"/><circle cx="161" cy="161" r="8"/><circle cx="31" cy="161" r="8"/>
+      <path d="m31 25 2 4 4 2-4 2-2 4-2-4-4-2 4-2 2-4ZM161 25l2 4 4 2-4 2-2 4-2-4-4-2 4-2 2-4ZM161 155l2 4 4 2-4 2-2 4-2-4-4-2 4-2 2-4ZM31 155l2 4 4 2-4 2-2 4-2-4-4-2 4-2 2-4Z"/>
+    </g>
+    <g stroke="#B98A4B" stroke-opacity=".34">
+      <path d="M53 14h31l12 6 12-6h31M53 178h31l12-6 12 6h31"/>
+      <path d="M14 53v31l6 12-6 12v31M178 53v31l-6 12 6 12v31"/>
+    </g>
+  </g>
+</svg>
