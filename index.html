@@ -666,7 +666,15 @@
           background:#04050f;
           color:#d0e8ff;
           position:relative;
+          /* v20.67：這一條原本只有 100vh。.app 在檔案前段已寫成
+             `min-height:100vh; min-height:100dvh`（先寫後備、再寫新單位），
+             但這個屬性選擇器與 .app 特異度相同（0,1,0）而且出現在後面，
+             等於在星雲主題把 dvh 後備整個蓋掉。
+             iOS Safari 瀏覽器模式下 100vh 不含網址列，版面因此比可視區高，
+             底部會多出一段捲動。獨立 App 模式沒有動態網址列，看不出差別，
+             所以一直沒被抓到。照原樣補回兩段式寫法。 */
           min-height:100vh;
+          min-height:100dvh;
         }
 
         /* 星空背景層 */
@@ -4664,7 +4672,7 @@
    下次改版若漏改其中一個，開場會顯示舊版本——而那行字正是我們用來判斷
    Service Worker 有沒有換版的依據，錯了會直接誤導除錯方向。
    改由這裡單一定義，APP_VERSION 從這裡取。 */
-window.__LIMU_VERSION = '20.64.0';
+window.__LIMU_VERSION = '20.67.0';
 (function(){
   var VERSION = window.__LIMU_VERSION;
   var el = document.getElementById('spl-static');
@@ -5630,10 +5638,10 @@ const NO_EXEMPT_HW = new Set(["聯絡簿", "國卷", "數卷"]); // 這些作業
 const DUAL_HW = new Set(["國卷", "數卷", "聽寫"]); // 雙排作業（訂正+簽名）
 const WEEKDAYS = ["日", "一", "二", "三", "四", "五", "六"];
 // v20.53：版本號單一來源，見開場控制器的 window.__LIMU_VERSION。
-const APP_VERSION = (typeof window !== 'undefined' && window.__LIMU_VERSION) || "20.64.0";
+const APP_VERSION = (typeof window !== 'undefined' && window.__LIMU_VERSION) || "20.67.0";
 const APP_BUILD_DATE = "2026-08-04";
-const APP_BUILD_ID = "limu-teacher-v20-64-20260804";
-const APP_CACHE_NAME = "hw-tracker-v20-64";
+const APP_BUILD_ID = "limu-teacher-v20-67-20260804";
+const APP_CACHE_NAME = "hw-tracker-v20-67";
 window.__LIMU_BUILD__ = Object.freeze({
     appVersion: APP_VERSION,
     buildDate: APP_BUILD_DATE,
@@ -9120,6 +9128,21 @@ function SettingsView({ groups, saveGroups, groupVersions, saveGroupVersions, sa
 // 其他面板狀態改變時，只要設定資料本身沒變，就保留現有 DOM 與輸入焦點，
 // 不讓整頁重新建立。函式型 props 只負責操作；其依賴的班級資料改變時，
 // 下列資料 props 也一定會改變並取得最新閉包。
+//
+// v20.66：上面那句「一定會改變」實際查過了，結論記在這裡，省得下次重查。
+// 把每個函式型 prop 的自由變數展開後，會讀到而不在下列清單裡的 App state 只有三個：
+//
+//   authed            —— setAuthed 與 setFirebaseUid 一律成對呼叫，
+//                        而 firebaseUid 在清單內，等於已被連帶覆蓋。安全。
+//   activeClassId     —— 所有存檔路徑都寫成
+//                        `_sl.get("hw5ren:activeClass") || activeClassId`，
+//                        localStorage 優先，閉包只是備援。安全。
+//   schoolEventStore  —— 只有 startSchoolYearTransition 讀它，而且原本是
+//                        直接取閉包值。這一項先前沒防到，v20.66 已改為
+//                        同樣的 localStorage 優先讀法（見該函式內註解）。
+//
+// 也就是說：清單維持現狀是對的，補救應該做在讀取端，不是把這三個
+// 高頻變動的 state 加進來害設定頁又開始整頁重繪。
 var MemoSettingsView = React.memo(SettingsView, function(prev, next) {
     var dataKeys = [
         'groups','groupVersions','className','schoolName','schoolYear',
@@ -9986,9 +10009,23 @@ function App() {
             transitionedFromYear:String(schoolYear || ''), transitionedAt:new Date().toISOString()
         };
         var updatedClasses = classes.concat([newClass]);
+        // v20.66：設定頁被 React.memo 包住，比較清單只看設定資料本身。
+        // 公開行事曆（schoolEventStore）不在清單裡，所以背景同步更新它之後，
+        // 設定頁不會重繪，這支函式的閉包就會停在舊值——新班級會沿用過期的
+        // 學校 profile（schoolUrl / sourceUrls）。
+        // 比照 activeClassId 既有做法：先讀 localStorage 的最新副本，
+        // 讀不到才退回閉包值。所有 setSchoolEventStore 的路徑都會同步寫入
+        // 這個鍵（saveSchoolEventStore、遠端同步、學年度轉換本身），因此
+        // localStorage 一定不會比 state 舊。
+        var latestEventStore = schoolEventStore;
+        try {
+            var evCid = _sl.get('hw5ren:activeClass') || activeClassId || '';
+            var evRaw = evCid ? _sl.get('hw5ren:schoolEvents:' + evCid) : '';
+            if (evRaw) latestEventStore = normalizeSchoolEventStore(safeJSON(evRaw, {}));
+        } catch(eEventStore) {}
         var nextSchoolEventStore = normalizeSchoolEventStore({
             profile:normalizedClassIdentity(targetSchool) === normalizedClassIdentity(schoolName)
-                ? Object.assign({}, schoolEventStore.profile, { schoolName:targetSchool, lastImportedAt:'' })
+                ? Object.assign({}, latestEventStore.profile, { schoolName:targetSchool, lastImportedAt:'' })
                 : { schoolName:targetSchool, schoolUrl:'', sourceUrls:[], lastCheckedAt:'', lastImportedAt:'' },
             events:[], excluded:[]
         });
@@ -10228,6 +10265,20 @@ function App() {
             requestAnimationFrame(function() { requestAnimationFrame(commit); });
         } else setTimeout(commit, 32);
     }
+    // v20.66：功能面板的「技術診斷」與「獎卡資料掃描」是透過 DOM 查詢去點
+    // 當日檢視裡的按鈕。原本寫成 `if (btn) btn.click();`——查不到就什麼都不做，
+    // 面板照樣關閉，使用者只會覺得按了沒反應，也沒有任何線索。
+    // 這裡把失敗變成看得見的訊息，並且記進 log 方便事後追。
+    function runDayTool(toolKey, toolLabel) {
+        var btn = null;
+        try { btn = document.querySelector('[data-day-tool="' + toolKey + '"]'); } catch(e) {}
+        setShowGearMenu(false);
+        if (btn) { try { btn.click(); return; } catch(eClick) {} }
+        try { window._writeLog('error', 'day tool 未找到: ' + toolKey); } catch(eLog) {}
+        try {
+            if (window.showVenusToast) window.showVenusToast('目前畫面上找不到「' + toolLabel + '」，請先開啟當日紀錄再試一次', 'info', 3200);
+        } catch(eToast) {}
+    }
     const [showCalImport, setShowCalImport] = useState(function(){ return !!readUpdateDraftValue('calImportText', ''); });
     const [calImportText, setCalImportText] = useState(function(){ return readUpdateDraftValue('calImportText', ''); });
     const [schoolWebsiteInput, setSchoolWebsiteInput] = useState(function(){
@@ -10324,7 +10375,24 @@ function App() {
     }
     // v20.62：主要導覽共用同一套 24px／2px 線性 SVG。
     // 不再交由各作業系統自行繪製 emoji，避免 iPhone／Android 風格與尺寸不同。
+    //
+    // v20.66：函式最後的 fallback 是三個點（也就是「更多」的圖示），
+    // 這對 name==="more" 是刻意的，但副作用是任何打錯的名稱都會安靜地
+    // 變成三個點，看起來像是「有畫出來」，不會有人發現。
+    // 下面這張表把「刻意」與「打錯」分開：不在表上的名稱會在主控台留一筆警告，
+    // 畫面行為完全不變（仍然給 fallback，不讓 UI 開天窗）。
+    var UI_ICON_NAMES = {
+        calendar:1, home:1, search:1, clipboard:1, settings:1, archive:1, sync:1,
+        activity:1, card:1, upload:1, user:1, device:1, locator:1, warning:1,
+        more:1 /* 走 fallback，是預期行為 */
+    };
+    var _uiIconWarned = {};
     function renderUiIcon(name, extraClass) {
+        if (!UI_ICON_NAMES[name] && !_uiIconWarned[name]) {
+            _uiIconWarned[name] = 1;
+            try { console.warn('[LIMU] 未知的圖示名稱：' + name + '（已改用預設圖示）'); } catch(e) {}
+            try { window._writeLog('error', 'unknown ui icon: ' + name); } catch(e) {}
+        }
         var props = {
             className:"venus-ui-icon" + (extraClass ? " " + extraClass : ""),
             viewBox:"0 0 24 24", fill:"none", stroke:"currentColor",
@@ -12759,7 +12827,16 @@ function App() {
         setSelDate(today());
     }
     // ── Month calendar grid ──
-    function CalendarCell({ dateStr, d }) {
+    // v20.65：這支原本叫 CalendarCell，並且用 React.createElement(CalendarCell, ...)
+    // 當成元件型別使用。但它宣告在 App 內部，每次 App 重繪都會產生一個新的函式
+    // identity；React 比對到「型別換了」，就把整片月曆格子 unmount 再 mount，
+    // 走完整 DOM 重建而不是 reconcile。App 有 161 個 useState，這幾乎是持續發生。
+    //
+    // 它沒有任何 hook、也沒有自己的 state，本質就是一段回傳 element 的樣板。
+    // 改成直接呼叫（並在回傳的 div 上自帶 key），React 就只會看到一般的 element
+    // 陣列，走正常 diff。名稱改成小寫開頭，是為了讓「再被當成元件型別使用」
+    // 這件事在語法層面就顯得不對，避免日後改回去。
+    function renderCalendarCell({ dateStr, d }) {
         var _a, _b, _c, _d;
         const entry = monthDays[dateStr] || { rows: [], attendance: { personal: new Set(), sick: new Set(), public: new Set() } };
         const rows = entry.rows || [];
@@ -12771,7 +12848,7 @@ function App() {
         const partial = hasSome && !allComplete;
         const absentCount = (((_a = att.personal) === null || _a === void 0 ? void 0 : _a.size) || 0) + (((_b = att.sick) === null || _b === void 0 ? void 0 : _b.size) || 0) + (((_c = att.public) === null || _c === void 0 ? void 0 : _c.size) || 0);
         const publicEvents = (schoolEventStore.events || []).filter(function(item){return item.date===dateStr;});
-        return (React.createElement("div", { className: "cal-cell"+(isToday?" is-today":"")+(allComplete?" is-complete":"")+(partial?" is-partial":""), onClick: () => openDay(dateStr) },
+        return (React.createElement("div", { key: dateStr, className: "cal-cell"+(isToday?" is-today":"")+(allComplete?" is-complete":"")+(partial?" is-partial":""), onClick: () => openDay(dateStr) },
             React.createElement("span", { className: "cal-day" }, d),
             hasSome && (React.createElement("div", { className: "cal-dots" }, rows.filter(r => r.hwName).map((r, i) => {
                 const gTotal = groups.reduce((s, g) => s + g.members.length, 0);
@@ -13875,7 +13952,7 @@ function App() {
                     Array(daysInMonth(curYear, curMonth)).fill(null).map((_, i) => {
                         const d = i + 1;
                         const ds = toDateStr(curYear, curMonth, d);
-                        return React.createElement(CalendarCell, { key: ds, dateStr: ds, d: d });
+                        return renderCalendarCell({ dateStr: ds, d: d });
                     }))),
             React.createElement("div", { className: "cal-legend", style: { fontSize: 11, lineHeight: 1.6, color: "#8a97a8", padding: "4px 6px", display: "flex", flexWrap: "wrap", gap: "4px 10px" } },
                 React.createElement("span", null, "🟢✓ 全數完成"),
@@ -14191,7 +14268,7 @@ function App() {
                             return React.createElement(React.Fragment, { key: ri },
                                 isDeleting && React.createElement("div", { className: "del-fixed-overlay" },
                                     React.createElement("button", {
-                                        className: "del-fixed-btn",
+                                        className: "del-fixed-btn", "aria-label":"刪除這一列作業",
                                         onClick: function(e) {
                                             e.stopPropagation();
                                             delRow(ri);
@@ -14553,6 +14630,7 @@ function App() {
                         borderBottom:"1px solid rgba(255,255,255,.08)"
                     }},
                         hwPickerStep !== 'main' && React.createElement("button", {
+                            "aria-label":"返回上一步",
                             style:{background:"none",border:"none",color:"rgba(255,255,255,.6)",fontSize:22,cursor:"pointer",padding:"0 10px 0 0",lineHeight:1},
                             onClick:function(){ setHwPickerStep('main'); setHwPickerLessons(new Set()); setHwPickerSub(''); setHwPickerTimes(''); setHwPickerPageFrom(''); setHwPickerPageTo(''); }
                         }, "‹"),
@@ -14563,6 +14641,7 @@ function App() {
                                 : "數習 — 填頁數"
                         ),
                         React.createElement("button", {
+                            "aria-label":"關閉作業選擇器",
                             style:{background:"none",border:"none",color:"rgba(255,255,255,.4)",fontSize:20,cursor:"pointer",padding:"0 0 0 10px",lineHeight:1},
                             onClick: function() {
                                 setHwPickerWpDay('');
@@ -15546,19 +15625,25 @@ function App() {
                     }, theme === 'nerv' ? '\u25c7 LOGIN' : '登入')
                 ),
                 [
-                    { icon:'home', label:'今日工作台', nervLabel:'\u25c8 TODAY DESK', action:function(){ openTodayWorkspace(); setShowGearMenu(false); } },
-                    { icon:'search', label:'全域搜尋', nervLabel:'\u25c7 GLOBAL SEARCH', action:function(){ setShowGlobalSearch(true); setShowGearMenu(false); } },
-                    { icon:'archive', label:'歷年檔案', nervLabel:'\u25ab ARCHIVE', action:function(){ openViewAfterGear('archive'); } },
-                    { icon:'calendar', label:'週作業計畫', nervLabel:'\u25a6 WEEK PLAN', action:function(){ wpOpenPlan(selDate || today()); setShowGearMenu(false); } },
-                    { icon:syncConflicts.length > 0 ? 'warning' : 'sync', label:'同步衝突' + (syncConflicts.length > 0 ? '（' + syncConflicts.length + '）' : ''), nervLabel:'\u25c8 SYNC CONFLICT' + (syncConflicts.length > 0 ? ' [' + syncConflicts.length + ']' : ''), action:function(){ setShowConflictCenter(true); setShowGearMenu(false); } },
-                    { icon:'activity', label:'技術診斷', nervLabel:'\u25c7 DIAGNOSTICS', hidden:view !== 'day', action:function(){ var btn=document.querySelector('[data-day-tool="diagnostic"]'); if(btn) btn.click(); setShowGearMenu(false); } },
-                    { icon:'card', label:'獎卡資料掃描', nervLabel:'\u25c7 CARD SCAN', hidden:view !== 'day', action:function(){ var btn=document.querySelector('[data-day-tool="card-scan"]'); if(btn) btn.click(); setShowGearMenu(false); } },
-                    { icon:'settings', label:'班級設定', nervLabel:'\u2699 CONFIG', action:function(){ openViewAfterGear('settings'); } },
-                    { icon:'upload', label:'匯入行事曆', nervLabel:'\u25c8 IMPORT CAL', action:function(){ setShowCalImport(true); setShowGearMenu(false); } },
-                    { icon:'card', label:'開啟獎卡系統', nervLabel:'\u25c7 CARD SYSTEM', action:function(){ window.open('https://n3a209-leon.github.io/card-system'); setShowGearMenu(false); } },
+                    { id:'today', icon:'home', label:'今日工作台', nervLabel:'\u25c8 TODAY DESK', action:function(){ openTodayWorkspace(); setShowGearMenu(false); } },
+                    { id:'search', icon:'search', label:'全域搜尋', nervLabel:'\u25c7 GLOBAL SEARCH', action:function(){ setShowGlobalSearch(true); setShowGearMenu(false); } },
+                    { id:'archive', icon:'archive', label:'歷年檔案', nervLabel:'\u25ab ARCHIVE', action:function(){ openViewAfterGear('archive'); } },
+                    { id:'weekplan', icon:'calendar', label:'週作業計畫', nervLabel:'\u25a6 WEEK PLAN', action:function(){ wpOpenPlan(selDate || today()); setShowGearMenu(false); } },
+                    { id:'conflict', icon:syncConflicts.length > 0 ? 'warning' : 'sync', label:'同步衝突' + (syncConflicts.length > 0 ? '（' + syncConflicts.length + '）' : ''), nervLabel:'\u25c8 SYNC CONFLICT' + (syncConflicts.length > 0 ? ' [' + syncConflicts.length + ']' : ''), action:function(){ setShowConflictCenter(true); setShowGearMenu(false); } },
+                    { id:'diagnostic', icon:'activity', label:'技術診斷', nervLabel:'\u25c7 DIAGNOSTICS', hidden:view !== 'day', action:function(){ runDayTool('diagnostic', '技術診斷'); } },
+                    { id:'cardscan', icon:'card', label:'獎卡資料掃描', nervLabel:'\u25c7 CARD SCAN', hidden:view !== 'day', action:function(){ runDayTool('card-scan', '獎卡資料掃描'); } },
+                    { id:'settings', icon:'settings', label:'班級設定', nervLabel:'\u2699 CONFIG', action:function(){ openViewAfterGear('settings'); } },
+                    { id:'import', icon:'upload', label:'匯入行事曆', nervLabel:'\u25c8 IMPORT CAL', action:function(){ setShowCalImport(true); setShowGearMenu(false); } },
+                    { id:'cardsystem', icon:'card', label:'開啟獎卡系統', nervLabel:'\u25c7 CARD SYSTEM', action:function(){
+                        // noopener：開出去的分頁不該拿得到 window.opener。
+                        try { var w = window.open('https://n3a209-leon.github.io/card-system', '_blank', 'noopener'); if (w) w.opener = null; } catch(eOpen) {}
+                        setShowGearMenu(false);
+                    } },
                 ].filter(function(item){ return !item.hidden; }).map(function(item, i) {
                     return React.createElement("button", {
-                        key:item.label, className:"gear-menu-item", onClick:item.action,
+                        // v20.66：key 原本用 item.label，但「同步衝突」的 label 內嵌筆數，
+                        // 數字一變 key 就變，React 會把該按鈕整顆拆掉重建。改用固定 id。
+                        key:item.id, className:"gear-menu-item", onClick:item.action,
                         disabled:!!item.disabled, 'aria-label':theme === 'nerv' ? item.nervLabel : item.label
                     },
                         React.createElement("span", { className:"gear-menu-icon", 'aria-hidden':'true' }, renderUiIcon(item.icon)),
@@ -15704,7 +15789,7 @@ function App() {
                 React.createElement("div", { style:{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12} },
                     React.createElement("div", { className: "gr-dialog-title", style:{margin:0} }, isNerv ? "[ GUIDANCE CENTER ]" : "📋 輔導紀錄中心"),
                     React.createElement("div", { style:{display:"flex",alignItems:"center"} },
-                        React.createElement("button", { style:{background:"none",border:"none",fontSize:20,cursor:"pointer",color:"inherit",opacity:.6}, onClick: function() { setGrCenter(false); } }, "×")
+                        React.createElement("button", { "aria-label":"關閉輔導紀錄中心", style:{background:"none",border:"none",fontSize:20,cursor:"pointer",color:"inherit",opacity:.6}, onClick: function() { setGrCenter(false); } }, "×")
                     )
                 ),
                 React.createElement("div", { className: "gr-tabs" },
@@ -16083,7 +16168,7 @@ function App() {
                 wpView === 'list' && React.createElement(React.Fragment, null,
                     React.createElement("div", { className: "wp-header" },
                         React.createElement("div", { className: "wp-title" }, "📅 作業週計畫"),
-                        React.createElement("button", { style:{background:"none",border:"none",fontSize:20,cursor:"pointer",color:"inherit",opacity:.6}, onClick: function() { setWpOpen(false); } }, "×")
+                        React.createElement("button", { "aria-label":"關閉週作業計畫", style:{background:"none",border:"none",fontSize:20,cursor:"pointer",color:"inherit",opacity:.6}, onClick: function() { setWpOpen(false); } }, "×")
                     ),
                     wpPlans.length === 0
                         ? renderMuchaEmpty("尚無任何週計畫", "wp-list-empty")
@@ -16117,9 +16202,9 @@ function App() {
                 ),
                 wpView === 'overview' && React.createElement(React.Fragment, null,
                     React.createElement("div", { className: "wp-header" },
-                        React.createElement("button", { className: "wp-back-btn", onClick: function() { setWpView('list'); } }, "‹"),
+                        React.createElement("button", { className: "wp-back-btn", "aria-label":"返回週計畫列表", onClick: function() { setWpView('list'); } }, "‹"),
                         React.createElement("div", { className: "wp-title" }, "📋 下學期作業計畫總覽"),
-                        React.createElement("button", { style:{background:"none",border:"none",fontSize:20,cursor:"pointer",color:"inherit",opacity:.6}, onClick: function() { setWpOpen(false); setWpView('list'); } }, "×")
+                        React.createElement("button", { "aria-label":"關閉週作業計畫", style:{background:"none",border:"none",fontSize:20,cursor:"pointer",color:"inherit",opacity:.6}, onClick: function() { setWpOpen(false); setWpView('list'); } }, "×")
                     ),
                     (function() {
                         var yr = new Date().getFullYear();
@@ -16197,7 +16282,7 @@ function App() {
                 ),
                 wpView === 'detail' && React.createElement(React.Fragment, null,
                     React.createElement("div", { className: "wp-header" },
-                        React.createElement("button", { className: "wp-back-btn", onClick: function() { setWpView('list'); } }, "‹"),
+                        React.createElement("button", { className: "wp-back-btn", "aria-label":"返回週計畫列表", onClick: function() { setWpView('list'); } }, "‹"),
                         React.createElement("div", { className: "wp-title" },
                             (function() {
                                 var plan = wpPlans.find(function(p){ return p.weekStart === wpSelWeek; });
@@ -16207,7 +16292,7 @@ function App() {
                                 return (+ws[1]) + '/' + (+ws[2]) + ' — ' + (+le[1]) + '/' + (+le[2]);
                             })()
                         ),
-                        React.createElement("button", { style:{background:"none",border:"none",fontSize:20,cursor:"pointer",color:"inherit",opacity:.6}, onClick: function() { setWpOpen(false); setWpView('list'); } }, "×")
+                        React.createElement("button", { "aria-label":"關閉週作業計畫", style:{background:"none",border:"none",fontSize:20,cursor:"pointer",color:"inherit",opacity:.6}, onClick: function() { setWpOpen(false); setWpView('list'); } }, "×")
                     ),
                     (function() {
                         var plan = wpPlans.find(function(p){ return p.weekStart === wpSelWeek; });
@@ -16245,9 +16330,9 @@ function App() {
                 ),
                 wpView === 'board' && React.createElement(React.Fragment, null,
                     React.createElement("div", { className: "wp-header" },
-                        React.createElement("button", { className: "wp-back-btn", onClick: function() { wpEditModeRef.current='single'; setWpView('list'); } }, "‹"),
+                        React.createElement("button", { className: "wp-back-btn", "aria-label":"返回週計畫列表", onClick: function() { wpEditModeRef.current='single'; setWpView('list'); } }, "‹"),
                         React.createElement("div", { className: "wp-title" }, "📋 學期作業看板"),
-                        React.createElement("button", { style:{background:"none",border:"none",fontSize:20,cursor:"pointer",color:"inherit",opacity:.6}, onClick: function() { wpEditModeRef.current='single'; setWpOpen(false); setWpView('list'); } }, "×")
+                        React.createElement("button", { "aria-label":"關閉週作業計畫", style:{background:"none",border:"none",fontSize:20,cursor:"pointer",color:"inherit",opacity:.6}, onClick: function() { wpEditModeRef.current='single'; setWpOpen(false); setWpView('list'); } }, "×")
                     ),
                     (function() {
                         var secs = wpSemesterSections();
@@ -16358,10 +16443,10 @@ function App() {
                                                                                 item.content,
                                                                                 item.note ? React.createElement("span", { style:{opacity:.6,fontSize:10,display:"block"} }, item.note) : null
                                                                             ),
-                                                                            React.createElement("button", { className: "wp-del-btn", onClick: function(){ wpDelItem(ds, idx); } }, "×")
+                                                                            React.createElement("button", { className: "wp-del-btn", "aria-label":"移除這一項作業", onClick: function(){ wpDelItem(ds, idx); } }, "×")
                                                                         );
                                                                     }),
-                                                                    React.createElement("button", { className: "wp-add-btn", onClick: function(){ hwPickerOpenForWp(ds); } }, "+")
+                                                                    React.createElement("button", { className: "wp-add-btn", "aria-label":"新增這一天的作業", onClick: function(){ hwPickerOpenForWp(ds); } }, "+")
                                                                 );
                                                             })
                                                         )
@@ -16376,17 +16461,17 @@ function App() {
                 ),
                 wpView === 'edit' && React.createElement(React.Fragment, null,
                     React.createElement("div", { className: "wp-header" },
-                        React.createElement("button", { className: "wp-back-btn",
+                        React.createElement("button", { className: "wp-back-btn", "aria-label":"返回週計畫列表",
                             onClick: function() {
                                 var hasSaved = wpPlans.some(function(p){ return p.weekStart === wpWeekStart; });
                                 setWpSelWeek(wpWeekStart); setWpView(hasSaved ? 'detail' : 'list');
                             }
                         }, "‹"),
                         React.createElement("div", { className: "wp-title" }, "✏️ 編輯週計畫"),
-                        React.createElement("button", { style:{background:"none",border:"none",fontSize:20,cursor:"pointer",color:"inherit",opacity:.6}, onClick: function() { setWpOpen(false); setWpView('list'); } }, "×")
+                        React.createElement("button", { "aria-label":"關閉週作業計畫", style:{background:"none",border:"none",fontSize:20,cursor:"pointer",color:"inherit",opacity:.6}, onClick: function() { setWpOpen(false); setWpView('list'); } }, "×")
                     ),
                     React.createElement("div", { className: "wp-week-nav" },
-                        React.createElement("button", { className: "wp-week-btn", onClick: function() { wpShiftWeek(-1); } }, "◄"),
+                        React.createElement("button", { className: "wp-week-btn", "aria-label":"上一週", onClick: function() { wpShiftWeek(-1); } }, "◄"),
                         React.createElement("div", { className: "wp-week-label" },
                             (function() {
                                 var days = wpWeekDays(wpWeekStart); if (!days[0]) return '';
@@ -16394,7 +16479,7 @@ function App() {
                                 return s2[0] + '/' + (+s2[1]) + '/' + (+s2[2]) + ' — ' + (+e2[1]) + '/' + (+e2[2]);
                             })()
                         ),
-                        React.createElement("button", { className: "wp-week-btn", onClick: function() { wpShiftWeek(1); } }, "►")
+                        React.createElement("button", { className: "wp-week-btn", "aria-label":"下一週", onClick: function() { wpShiftWeek(1); } }, "►")
                     ),
                     React.createElement("table", { className: "wp-table" },
                         React.createElement("thead", null,
@@ -16430,10 +16515,10 @@ function App() {
                                                     item.content,
                                                     item.note ? React.createElement("span", { style:{opacity:.6,fontSize:10,display:"block"} }, item.note) : null
                                                 ),
-                                                React.createElement("button", { className: "wp-del-btn", onClick: function() { wpDelItem(ds, idx); } }, "×")
+                                                React.createElement("button", { className: "wp-del-btn", "aria-label":"移除這一項作業", onClick: function() { wpDelItem(ds, idx); } }, "×")
                                             );
                                         }),
-                                        React.createElement("button", { className: "wp-add-btn hw-touch-feedback",
+                                        React.createElement("button", { className: "wp-add-btn hw-touch-feedback", "aria-label":"新增這一天的作業",
                                             onClick: function() { hwPickerOpenForWp(ds); }
                                         }, "+")
                                     );
@@ -16471,7 +16556,10 @@ function App() {
             React.createElement("button", {
                 type:"button", className:"mobile-dock-btn" + ((view === "settings" || view === "archive") ? " active" : ""),
                 onClick:function(){ setShowGearMenu(true); }, "aria-label":"開啟更多功能",
-                "aria-current":(view === "settings" || view === "archive") ? "page" : undefined
+                // v20.66：這顆按鈕開的是面板，不是切換到某一頁，用 aria-current="page"
+                // 會讓螢幕閱讀器念成「目前頁面」。正確的語意是可展開的選單。
+                "aria-haspopup":"menu",
+                "aria-expanded":showGearMenu ? "true" : "false"
             }, React.createElement("span", { className:"dock-icon", "aria-hidden":"true" }, renderUiIcon("more")), React.createElement("span", { className:"dock-label" }, "更多"))
         ),
         view === "settings" && (React.createElement(MemoSettingsView, { groups: groups, saveGroups: saveGroups, groupVersions: groupVersions, saveGroupVersions: saveGroupVersions, saveSettingsAtomic: saveSettingsAtomic, className: className, setClassName: (v) => { setClassName(v); _sl.set("hw5ren:className", v); saveSettingsToFirebase(v, undefined, undefined, undefined); }, schoolName: schoolName, setSchoolName: (v) => { setSchoolName(v); _sl.set("hw5ren:school", v); saveSettingsToFirebase(undefined, v, undefined, undefined); }, schoolYear: schoolYear, setSchoolYear: (v) => { setSchoolYear(v); _sl.set("hw5ren:year", v); saveSettingsToFirebase(undefined, undefined, v, undefined); }, semStart1: semStart1, setSemStart1: (v) => { setSemStart1(v); _sl.set("hw5ren:semStart1", v); saveSettingsToFirebase(undefined, undefined, undefined, undefined, undefined, undefined, v, undefined); }, semStart2: semStart2, setSemStart2: (v) => { setSemStart2(v); _sl.set("hw5ren:semStart2", v); saveSettingsToFirebase(undefined, undefined, undefined, undefined, undefined, undefined, undefined, v); }, semEnd1: semEnd1, semEnd2: semEnd2, schoolCalendar: schoolCalendar, classSize: classSize, setClassSize: (v) => { setClassSize(v); _sl.set("hw5ren:classSize", String(v)); saveSettingsToFirebase(undefined, undefined, undefined, undefined, undefined, v, undefined, undefined); }, officers: officers, saveOfficers: saveOfficers, officerPresets: officerPresets, setOfficerPresets: (v) => { setOfficerPresets(v); _sl.set("hw5ren:officerPresets", JSON.stringify(v)); markSettingsDirty('settings:main', '\u500B\u4EBA\u6E05\u55AE'); }, onClose: () => setView("month"), isNerv: isNerv, idbKeys: idbKeys, idbGet: idbGet, idbDelete: idbDelete, openDB: openDB, DB_STORE: DB_STORE, classes: classes, addClass: addClass, firebaseUid: firebaseUid, checkCurrentArchive:checkCurrentArchive, startSchoolYearTransition:startSchoolYearTransition, onOpenArchive:function(){setView("archive");} })),
@@ -16550,8 +16638,8 @@ function App() {
   var updateRegistration = null;
   var reloadingForUpdate = false;
   var updateActivationRequested = false;
-  var SW_BUILD_ID = 'limu-teacher-v20-64-20260804';
-  var SW_CACHE_NAME = 'hw-tracker-v20-64';
+  var SW_BUILD_ID = 'limu-teacher-v20-67-20260804';
+  var SW_CACHE_NAME = 'hw-tracker-v20-67';
   var SW_URL = './sw.js?build=' + encodeURIComponent(SW_BUILD_ID);
   var lastUpdateCheck = 0;
   // v20.16：checkBuildConsistency 本來就有 15 秒節流，但 reg.update() 沒有。
@@ -16777,6 +16865,119 @@ function App() {
   }
   window.addEventListener('online', updateOnlineStatus);
   window.addEventListener('offline', updateOnlineStatus);
+})();
+</script>
+<script>
+/* ═══ v20.65：月曆重建量測探針 ═══════════════════════════════════════════
+   為什麼是這個做法：先前的 React.Profiler 版本在 production build 會被編掉，
+   量不到東西。這裡完全不碰 React，改用瀏覽器原生的 MutationObserver 與
+   PerformanceObserver 直接數「DOM 真的被重建幾次」，數字直接印在畫面上。
+
+   只有網址帶 ?perf=1 才會啟動；一般使用者不會建立任何 observer。
+
+   怎麼看：
+     1. 開 …/index.html?perf=1，停在月曆畫面。
+     2. 隨便點幾下（切換月份以外的操作，例如開關面板、等同步跑一次）。
+     3. 看「格子重建」那一列。
+          修好了 → 重建 0（或極少數，只在換月份時跳一次）
+          沒修好 → 每次操作就跳 +35 左右
+     4. 用力上下滑動 5 秒，看「長工作」與「最長一次」。
+   ═══════════════════════════════════════════════════════════════════════ */
+(function() {
+  try {
+    if (window.location.search.indexOf('perf=1') < 0) return;
+
+    var stat = { added:0, removed:0, batches:0, longTasks:0, longMax:0, other:0 };
+    var panel = null;
+    var pending = false;
+
+    function ensurePanel() {
+      if (panel && panel.isConnected) return panel;
+      panel = document.createElement('div');
+      panel.setAttribute('aria-hidden', 'true');
+      panel.style.cssText = 'position:fixed;top:6px;right:6px;z-index:2147483647;' +
+        'background:rgba(8,14,22,.92);color:#8fe3b0;font:11px/1.5 ui-monospace,Menlo,monospace;' +
+        'padding:7px 9px;border-radius:8px;pointer-events:none;white-space:pre;' +
+        'max-width:52vw;box-shadow:0 4px 14px rgba(0,0,0,.4)';
+      document.body.appendChild(panel);
+      return panel;
+    }
+
+    function paint() {
+      pending = false;
+      var el = ensurePanel();
+      el.textContent =
+        'LIMU perf ' + (window.__LIMU_VERSION || '') + '\n' +
+        '格子重建  +' + stat.added + ' / -' + stat.removed + '（' + stat.batches + ' 批）\n' +
+        '其他變動  ' + stat.other + '\n' +
+        '長工作    ' + stat.longTasks + ' 次，最長 ' + Math.round(stat.longMax) + 'ms';
+      el.style.color = stat.added > 60 ? '#ff9b7a' : '#8fe3b0';
+    }
+    function schedulePaint() {
+      if (pending) return;
+      pending = true;
+      requestAnimationFrame(paint);
+    }
+
+    function countCells(nodes) {
+      var n = 0;
+      for (var i = 0; i < nodes.length; i++) {
+        var node = nodes[i];
+        if (node && node.nodeType === 1 && node.classList &&
+            node.classList.contains('cal-cell')) n++;
+      }
+      return n;
+    }
+
+    var observer = new MutationObserver(function(records) {
+      var touched = false;
+      for (var i = 0; i < records.length; i++) {
+        var rec = records[i];
+        if (rec.type !== 'childList') { stat.other++; continue; }
+        var target = rec.target;
+        var inGrid = target && target.nodeType === 1 && target.classList &&
+                     target.classList.contains('cal-grid');
+        if (!inGrid) { stat.other++; continue; }
+        var a = countCells(rec.addedNodes), r = countCells(rec.removedNodes);
+        if (a || r) { stat.added += a; stat.removed += r; touched = true; }
+      }
+      if (touched) stat.batches++;
+      schedulePaint();
+    });
+
+    function start() {
+      try {
+        observer.observe(document.body, { childList:true, subtree:true, attributes:false, characterData:false });
+      } catch(e) {}
+      try {
+        if (window.PerformanceObserver &&
+            PerformanceObserver.supportedEntryTypes &&
+            PerformanceObserver.supportedEntryTypes.indexOf('longtask') >= 0) {
+          new PerformanceObserver(function(list) {
+            list.getEntries().forEach(function(entry) {
+              stat.longTasks++;
+              if (entry.duration > stat.longMax) stat.longMax = entry.duration;
+            });
+            schedulePaint();
+          }).observe({ entryTypes:['longtask'] });
+        }
+      } catch(e) {}
+      schedulePaint();
+    }
+
+    if (document.body) start();
+    else document.addEventListener('DOMContentLoaded', start);
+
+    /* 給主控台用：LIMUPerf.reset() 歸零後再操作一次，可比較單一動作的成本。 */
+    window.LIMUPerf = {
+      stats: function() { return Object.assign({}, stat); },
+      reset: function() {
+        stat.added = 0; stat.removed = 0; stat.batches = 0;
+        stat.longTasks = 0; stat.longMax = 0; stat.other = 0;
+        schedulePaint();
+      }
+    };
+  } catch(e) {}
 })();
 </script>
 </body>

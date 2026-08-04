@@ -1,11 +1,14 @@
 // 教師專用小工具 PWA Service Worker
-// v20.64：延續核心三檔交叉驗證；本版完成視覺一致性與最終回歸，不新增離線素材。
+// v20.66：延續核心三檔交叉驗證。本版移除兩個已無人引用的離線素材：
+// login-background.jpg（v20.62 起登入畫面改與開場共用影像）與
+// odyssey-frame.svg（已被 odyssey-frame-v20-62.svg 取代）。
+// 兩者都經過全檔搜尋確認，除了這份清單之外沒有任何引用。
 
 const CACHE_PREFIX = 'hw-tracker-';
-const CACHE_NAME = 'hw-tracker-v20-64';
-const BUILD_ID = 'limu-teacher-v20-64-20260804';
+const CACHE_NAME = 'hw-tracker-v20-67';
+const BUILD_ID = 'limu-teacher-v20-67-20260804';
 // 頁面會核對這個完整字面標記；不可改回由兩段字串拼接，否則會再次誤報。
-const DEPLOYMENT_MARKER = 'limu-teacher-v20-64-20260804|hw-tracker-v20-64';
+const DEPLOYMENT_MARKER = 'limu-teacher-v20-67-20260804|hw-tracker-v20-67';
 // 用來判斷「這是一份完整的 App shell」，不限定版本。
 const BUILD_ID_PATTERN = /limu-teacher-v\d+-\d+-\d{8}/;
 const PRECACHE_URLS = [
@@ -16,7 +19,6 @@ const PRECACHE_URLS = [
   './app-icon-512-maskable-v20-16.png',
   './assets/apple-touch-icon-v20-16.png',
   './assets/gallery-forward.jpg',
-  './assets/login-background.jpg',
   './assets/mucha-card-frame.webp',
   './assets/mucha-corner.webp',
   './assets/mucha-divider-left.webp',
@@ -34,7 +36,6 @@ const PRECACHE_URLS = [
   './assets/nebula-route-v20-62.svg',
   './assets/odyssey-compass-v20-62.svg',
   './assets/odyssey-divider.svg',
-  './assets/odyssey-frame.svg',
   './assets/odyssey-frame-v20-62.svg',
   './assets/odyssey-sea-chart.svg',
   './assets/signature-blue-iris.webp',
