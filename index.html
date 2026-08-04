@@ -4258,6 +4258,22 @@
         @media(prefers-reduced-motion:reduce){
           .gear-menu-item{transition:none!important}
         }
+
+        /* ══ v20.68：功能面板的捲動提示 ═════════════════════════════════
+           面板固定佔用 239pt（上緣留白 + 標題 + 帳號列 + 回首頁區 + 安全區），
+           88dvh 之下只剩約 511pt 給清單；十個項目共 610pt，一定放不完。
+           就算把面板拉到 100dvh，十項所需的 849pt 也比 852pt 的螢幕還高——
+           這是塞不進去的，不是調參數能解決的。
+           所以維持可捲動，但把「下面還有」做得看得見：
+           回首頁那一格是 sticky bottom:0 且底色不透明，原本會把最後一項切得
+           乾乾淨淨。改成上緣用面板同色漸層淡出，被蓋住的那一項會漸漸消失
+           而不是被切斷，這是使用者唯一看得懂的「可以再往下滑」訊號。 */
+        .gear-home-dock::before{
+          top:-38px;
+          height:38px;
+          opacity:1;
+          background:linear-gradient(180deg,var(--gear-panel-bg-0,rgba(0,0,0,0)),var(--gear-panel-bg,transparent));
+        }
 </style>
 <script id="limu-external-art-map">
 (function(){
@@ -4672,7 +4688,7 @@
    下次改版若漏改其中一個，開場會顯示舊版本——而那行字正是我們用來判斷
    Service Worker 有沒有換版的依據，錯了會直接誤導除錯方向。
    改由這裡單一定義，APP_VERSION 從這裡取。 */
-window.__LIMU_VERSION = '20.67.0';
+window.__LIMU_VERSION = '20.68.0';
 (function(){
   var VERSION = window.__LIMU_VERSION;
   var el = document.getElementById('spl-static');
@@ -5638,10 +5654,10 @@ const NO_EXEMPT_HW = new Set(["聯絡簿", "國卷", "數卷"]); // 這些作業
 const DUAL_HW = new Set(["國卷", "數卷", "聽寫"]); // 雙排作業（訂正+簽名）
 const WEEKDAYS = ["日", "一", "二", "三", "四", "五", "六"];
 // v20.53：版本號單一來源，見開場控制器的 window.__LIMU_VERSION。
-const APP_VERSION = (typeof window !== 'undefined' && window.__LIMU_VERSION) || "20.67.0";
+const APP_VERSION = (typeof window !== 'undefined' && window.__LIMU_VERSION) || "20.68.0";
 const APP_BUILD_DATE = "2026-08-04";
-const APP_BUILD_ID = "limu-teacher-v20-67-20260804";
-const APP_CACHE_NAME = "hw-tracker-v20-67";
+const APP_BUILD_ID = "limu-teacher-v20-68-20260804";
+const APP_CACHE_NAME = "hw-tracker-v20-68";
 window.__LIMU_BUILD__ = Object.freeze({
     appVersion: APP_VERSION,
     buildDate: APP_BUILD_DATE,
@@ -10268,17 +10284,61 @@ function App() {
     // v20.66：功能面板的「技術診斷」與「獎卡資料掃描」是透過 DOM 查詢去點
     // 當日檢視裡的按鈕。原本寫成 `if (btn) btn.click();`——查不到就什麼都不做，
     // 面板照樣關閉，使用者只會覺得按了沒反應，也沒有任何線索。
-    // 這裡把失敗變成看得見的訊息，並且記進 log 方便事後追。
-    function runDayTool(toolKey, toolLabel) {
+    //
+    // v20.68：這兩項改為在功能面板常駐（不再只在當日紀錄出現），所以「不在
+    // 當日紀錄」變成正常情境而不是錯誤。找不到按鈕時先開今天的當日紀錄，
+    // 等畫面掛好之後再執行。
+    //
+    // 為什麼用 ref + useEffect 而不是 setTimeout 重試：openDay 是非同步的，
+    // 重試要猜幾毫秒才夠，猜短了沒接到、猜長了使用者乾等。useEffect 依賴
+    // view，React 完成 DOM commit 之後才會跑，按鈕保證已經在畫面上，
+    // 是確定的時點而不是估計值。
+    const pendingDayToolRef = useRef(null);
+    function clickDayTool(toolKey) {
         var btn = null;
         try { btn = document.querySelector('[data-day-tool="' + toolKey + '"]'); } catch(e) {}
-        setShowGearMenu(false);
-        if (btn) { try { btn.click(); return; } catch(eClick) {} }
-        try { window._writeLog('error', 'day tool 未找到: ' + toolKey); } catch(eLog) {}
-        try {
-            if (window.showVenusToast) window.showVenusToast('目前畫面上找不到「' + toolLabel + '」，請先開啟當日紀錄再試一次', 'info', 3200);
-        } catch(eToast) {}
+        if (!btn) return false;
+        try { btn.click(); return true; } catch(e) { return false; }
     }
+    function failDayTool(toolKey, toolLabel) {
+        try { window._writeLog('error', 'day tool 未找到: ' + toolKey); } catch(e) {}
+        try {
+            if (window.showVenusToast) window.showVenusToast('無法開啟「' + toolLabel + '」，請手動切到當日紀錄再試一次', 'info', 3200);
+        } catch(e) {}
+    }
+    function runDayTool(toolKey, toolLabel) {
+        setShowGearMenu(false);
+        // 已經在當日紀錄：面板是覆蓋層，底下的按鈕還在，直接點。
+        if (view === 'day' && clickDayTool(toolKey)) return;
+        pendingDayToolRef.current = { key:toolKey, label:toolLabel };
+        // 沿用 v20.63 的雙階段導覽：先讓面板收起、body 捲動鎖解除，
+        // 再掛新畫面，避免舊頁捲動位置與新頁互相拉扯。
+        var commit = function() {
+            var result;
+            try { result = openDay(today()); } catch(e) {
+                pendingDayToolRef.current = null;
+                failDayTool(toolKey, toolLabel);
+                return;
+            }
+            if (result && typeof result.catch === 'function') {
+                result.catch(function() {
+                    pendingDayToolRef.current = null;
+                    failDayTool(toolKey, toolLabel);
+                });
+            }
+        };
+        if (typeof requestAnimationFrame === 'function') {
+            requestAnimationFrame(function() { requestAnimationFrame(commit); });
+        } else setTimeout(commit, 32);
+    }
+    useEffect(function() {
+        var pending = pendingDayToolRef.current;
+        if (!pending) return;
+        if (view !== 'day') return;
+        pendingDayToolRef.current = null;
+        if (clickDayTool(pending.key)) return;
+        failDayTool(pending.key, pending.label);
+    }, [view]);
     const [showCalImport, setShowCalImport] = useState(function(){ return !!readUpdateDraftValue('calImportText', ''); });
     const [calImportText, setCalImportText] = useState(function(){ return readUpdateDraftValue('calImportText', ''); });
     const [schoolWebsiteInput, setSchoolWebsiteInput] = useState(function(){
@@ -15593,10 +15653,26 @@ function App() {
                     React.createElement("button", { className:"sheet-home-btn", onClick:function(){ setShowGlobalSearch(false); setView("month"); }, 'aria-label':"回到首頁", title:"回到首頁" }, React.createElement("svg", { viewBox:"0 0 24 24", fill:"none", stroke:"currentColor", strokeWidth:"2", strokeLinecap:"round", strokeLinejoin:"round", "aria-hidden":"true", focusable:"false" }, React.createElement("path", { d:"M3 10.6 12 3.5l9 7.1" }), React.createElement("path", { d:"M5.6 9.6V20.5h12.8V9.6" })))
                 )
             )),
-        showGearMenu && (React.createElement("div", { className:"gear-menu-overlay", role:'dialog', 'aria-modal':'true', 'aria-label':'功能選單', onClick: function() { setShowGearMenu(false); }, style: { position: 'fixed', inset: 0, zIndex: 350, background: 'rgba(0,0,0,.6)' } },
+        showGearMenu && (function(){
+        // v20.68：面板底色原本只寫在行內樣式裡。捲動漸層必須用「完全相同」的
+        // 顏色才不會看到色帶，所以抽成變數，兩處共用同一個來源。
+        var gearPanelBg = theme === 'nerv' ? '#120400' : theme === 'nebula' ? '#0a0c20' : theme === 'mucha' ? '#f4ebdd' : theme === 'odyssey' ? '#f1eadc' : '#ffffff';
+        var gearPanelBgFade = (function(hex){
+            var h = String(hex).replace('#','');
+            if (h.length === 3) h = h[0]+h[0]+h[1]+h[1]+h[2]+h[2];
+            var num = parseInt(h, 16);
+            if (isNaN(num)) return 'rgba(0,0,0,0)';
+            return 'rgba(' + ((num>>16)&255) + ',' + ((num>>8)&255) + ',' + (num&255) + ',0)';
+        })(gearPanelBg);
+        return (React.createElement("div", { className:"gear-menu-overlay", role:'dialog', 'aria-modal':'true', 'aria-label':'功能選單', onClick: function() { setShowGearMenu(false); }, style: { position: 'fixed', inset: 0, zIndex: 350, background: 'rgba(0,0,0,.6)' } },
             React.createElement("div", { className:"gear-menu-panel", onClick: function(e){ e.stopPropagation(); }, style: {
                 position: 'absolute', bottom: 0, left: 0, right: 0,
-                background: theme === 'nerv' ? '#120400' : theme === 'nebula' ? '#0a0c20' : theme === 'mucha' ? '#f4ebdd' : theme === 'odyssey' ? '#f1eadc' : '#fff',
+                background: gearPanelBg,
+                // v20.68：漸層需要「同色但全透明」的起點。用 transparent 在部分
+                // 繪圖引擎會經由 rgba(0,0,0,0) 內插，中間帶出一條灰邊，
+                // 所以這裡直接給同色 alpha 0，兩端只有透明度不同。
+                '--gear-panel-bg': gearPanelBg,
+                '--gear-panel-bg-0': gearPanelBgFade,
                 borderRadius: '28px 28px 0 0',
                 padding: '26px 0 calc(14px + var(--safe-bottom))',
                 boxShadow: '0 -16px 48px rgba(0,0,0,.34)',
@@ -15630,8 +15706,8 @@ function App() {
                     { id:'archive', icon:'archive', label:'歷年檔案', nervLabel:'\u25ab ARCHIVE', action:function(){ openViewAfterGear('archive'); } },
                     { id:'weekplan', icon:'calendar', label:'週作業計畫', nervLabel:'\u25a6 WEEK PLAN', action:function(){ wpOpenPlan(selDate || today()); setShowGearMenu(false); } },
                     { id:'conflict', icon:syncConflicts.length > 0 ? 'warning' : 'sync', label:'同步衝突' + (syncConflicts.length > 0 ? '（' + syncConflicts.length + '）' : ''), nervLabel:'\u25c8 SYNC CONFLICT' + (syncConflicts.length > 0 ? ' [' + syncConflicts.length + ']' : ''), action:function(){ setShowConflictCenter(true); setShowGearMenu(false); } },
-                    { id:'diagnostic', icon:'activity', label:'技術診斷', nervLabel:'\u25c7 DIAGNOSTICS', hidden:view !== 'day', action:function(){ runDayTool('diagnostic', '技術診斷'); } },
-                    { id:'cardscan', icon:'card', label:'獎卡資料掃描', nervLabel:'\u25c7 CARD SCAN', hidden:view !== 'day', action:function(){ runDayTool('card-scan', '獎卡資料掃描'); } },
+                    { id:'diagnostic', icon:'activity', label:'技術診斷', nervLabel:'\u25c7 DIAGNOSTICS', action:function(){ runDayTool('diagnostic', '技術診斷'); } },
+                    { id:'cardscan', icon:'card', label:'獎卡資料掃描', nervLabel:'\u25c7 CARD SCAN', action:function(){ runDayTool('card-scan', '獎卡資料掃描'); } },
                     { id:'settings', icon:'settings', label:'班級設定', nervLabel:'\u2699 CONFIG', action:function(){ openViewAfterGear('settings'); } },
                     { id:'import', icon:'upload', label:'匯入行事曆', nervLabel:'\u25c8 IMPORT CAL', action:function(){ setShowCalImport(true); setShowGearMenu(false); } },
                     { id:'cardsystem', icon:'card', label:'開啟獎卡系統', nervLabel:'\u25c7 CARD SYSTEM', action:function(){
@@ -15653,13 +15729,17 @@ function App() {
                 }),
                 // v20.59：功能選單的回首頁改用與其他面板相同的左下角浮動圓鈕，
                 // 不再是清單裡的一列——四個面板的操作位置一致，肌肉記憶才建立得起來。
-                React.createElement("div", { className:"sheet-home-dock", style:{ paddingLeft:28, paddingRight:28 } },
+                // v20.68：加上 gear-home-dock。這一格是 sticky bottom:0、底色不透明，
+                // 十個項目放不進一個畫面時，它會把最後一項切得乾乾淨淨，看起來就像
+                // 清單到此為止。改成上緣漸層淡出，讓「下面還有」看得出來。
+                React.createElement("div", { className:"sheet-home-dock gear-home-dock", style:{ paddingLeft:28, paddingRight:28 } },
                     React.createElement("button", { className:"sheet-home-btn", onClick:function(){ openViewAfterGear('month'); }, 'aria-label':"回到首頁", title:"回到首頁" },
                     React.createElement("svg", { viewBox:"0 0 24 24", fill:"none", stroke:"currentColor", strokeWidth:"2", strokeLinecap:"round", strokeLinejoin:"round", "aria-hidden":"true", focusable:"false" }, React.createElement("path", { d:"M3 10.6 12 3.5l9 7.1" }), React.createElement("path", { d:"M5.6 9.6V20.5h12.8V9.6" }))
                 )
                 )
             )
-        )),
+        ));
+        })(),
         showConflictCenter && React.createElement("div", {
             className:"v18-sheet-overlay",
             role:'dialog', 'aria-modal':'true', 'aria-label':'同步衝突處理中心',
@@ -16638,8 +16718,8 @@ function App() {
   var updateRegistration = null;
   var reloadingForUpdate = false;
   var updateActivationRequested = false;
-  var SW_BUILD_ID = 'limu-teacher-v20-67-20260804';
-  var SW_CACHE_NAME = 'hw-tracker-v20-67';
+  var SW_BUILD_ID = 'limu-teacher-v20-68-20260804';
+  var SW_CACHE_NAME = 'hw-tracker-v20-68';
   var SW_URL = './sw.js?build=' + encodeURIComponent(SW_BUILD_ID);
   var lastUpdateCheck = 0;
   // v20.16：checkBuildConsistency 本來就有 15 秒節流，但 reg.update() 沒有。

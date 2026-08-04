@@ -5,10 +5,10 @@
 // 兩者都經過全檔搜尋確認，除了這份清單之外沒有任何引用。
 
 const CACHE_PREFIX = 'hw-tracker-';
-const CACHE_NAME = 'hw-tracker-v20-67';
-const BUILD_ID = 'limu-teacher-v20-67-20260804';
+const CACHE_NAME = 'hw-tracker-v20-68';
+const BUILD_ID = 'limu-teacher-v20-68-20260804';
 // 頁面會核對這個完整字面標記；不可改回由兩段字串拼接，否則會再次誤報。
-const DEPLOYMENT_MARKER = 'limu-teacher-v20-67-20260804|hw-tracker-v20-67';
+const DEPLOYMENT_MARKER = 'limu-teacher-v20-68-20260804|hw-tracker-v20-68';
 // 用來判斷「這是一份完整的 App shell」，不限定版本。
 const BUILD_ID_PATTERN = /limu-teacher-v\d+-\d+-\d{8}/;
 const PRECACHE_URLS = [
